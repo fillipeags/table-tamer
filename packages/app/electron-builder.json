@@ -1,0 +1,20 @@
+{
+  "appId": "com.table-tamer.app",
+  "productName": "Table Tamer",
+  "directories": {
+    "output": "out"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "mac": {
+    "target": "dmg",
+    "icon": null
+  },
+  "win": {
+    "target": "nsis"
+  },
+  "linux": {
+    "target": "AppImage"
+  }
+}

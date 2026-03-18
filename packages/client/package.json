@@ -1,0 +1,31 @@
+{
+  "name": "@table-tamer/client",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@table-tamer/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@nozbe/watermelondb": ">=0.26.0"
+  },
+  "devDependencies": {
+    "@nozbe/watermelondb": "^0.28.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.0"
+  }
+}

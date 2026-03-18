@@ -1,0 +1,40 @@
+{
+  "name": "@table-tamer/app",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "vite build --mode development && electron .",
+    "dev:renderer": "vite",
+    "dev:main": "tsc -p tsconfig.main.json && electron .",
+    "build": "vite build && tsc -p tsconfig.main.json",
+    "build:electron": "electron-builder",
+    "clean": "rm -rf dist out"
+  },
+  "dependencies": {
+    "@table-tamer/core": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.5.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0",
+    "postcss": "^8.5.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.0.0",
+    "zustand": "^5.0.0",
+    "@tanstack/react-table": "^8.20.0",
+    "@codemirror/lang-sql": "^6.8.0",
+    "codemirror": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/theme-one-dark": "^6.0.0"
+  }
+}
