@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/fillipeags/table-tamer/compare/v0.2.6...v0.2.7) (2026-03-19)
+
+
+### Bug Fixes
+
+* add build step before tests in CI to resolve workspace deps ([5d6e7df](https://github.com/fillipeags/table-tamer/commit/5d6e7df5f8ec92708ac2a4d026ed1aa8c7798243))
+
 ## [0.2.6](https://github.com/fillipeags/table-tamer/compare/v0.2.5...v0.2.6) (2026-03-19)
 
 

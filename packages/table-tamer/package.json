@@ -1,6 +1,6 @@
 {
   "name": "@table-tamer/react-native",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": false,
   "description": "A real-time WatermelonDB/SQLite inspector for React Native apps",
   "author": "fillipeags <fillipeags@users.noreply.github.com>",
