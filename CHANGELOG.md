@@ -1,5 +1,14 @@
 # Changelog
 
+# [0.3.0](https://github.com/fillipeags/table-tamer/compare/v0.2.7...v0.3.0) (2026-03-19)
+
+
+### Features
+
+* add macOS code signing and notarization ([a800e81](https://github.com/fillipeags/table-tamer/commit/a800e8112bb2475d49762d2d87623c6e011ee7e1))
+* custom DMG installer background with branding and arrow ([8175a35](https://github.com/fillipeags/table-tamer/commit/8175a35b59238a95bf0d4a2f45343e01e4e75bb5))
+* parameterized queries, read-only mode, connection events, CI/CD fixes ([a1ec99a](https://github.com/fillipeags/table-tamer/commit/a1ec99a88fa7be9ad58302b10c22bafc2f768998))
+
 ## [0.2.7](https://github.com/fillipeags/table-tamer/compare/v0.2.6...v0.2.7) (2026-03-19)
 
 
