@@ -1,6 +1,7 @@
 {
   "appId": "com.table-tamer.app",
   "productName": "Table Tamer",
+  "publish": null,
   "directories": {
     "output": "out"
   },
