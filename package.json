@@ -18,6 +18,9 @@
     "dist:mac": "pnpm --filter @table-tamer/app dist:mac",
     "dist:win": "pnpm --filter @table-tamer/app dist:win",
     "dist:linux": "pnpm --filter @table-tamer/app dist:linux",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --coverage.exclude='packages/client/src/index.ts' --coverage.exclude='packages/table-tamer/src/index.ts'",
     "lint": "eslint packages/*/src --ext .ts,.tsx",
     "lint:fix": "eslint packages/*/src --ext .ts,.tsx --fix",
     "prepare": "husky",
@@ -27,13 +30,15 @@
     "release:major": "release-it major"
   },
   "devDependencies": {
-    "turbo": "^2.5.0",
-    "typescript": "^5.8.0",
-    "eslint": "^9.0.0",
     "@eslint/js": "^9.0.0",
-    "typescript-eslint": "^8.0.0",
+    "@release-it/conventional-changelog": "^9.0.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "eslint": "^9.0.0",
     "husky": "^9.0.0",
     "release-it": "^18.0.0",
-    "@release-it/conventional-changelog": "^9.0.0"
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.1.0"
   }
 }
