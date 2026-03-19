@@ -1,7 +1,17 @@
 {
   "name": "@table-tamer/core",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Protocol types and utilities for Table Tamer",
+  "author": "fillipeags",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fillipeags/table-tamer.git",
+    "directory": "packages/core"
+  },
+  "keywords": ["watermelondb", "sqlite", "inspector", "react-native", "database"],
+  "files": ["dist", "README.md"],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

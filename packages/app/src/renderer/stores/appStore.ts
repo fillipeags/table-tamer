@@ -31,6 +31,9 @@ interface AppState {
   schema: { tableName: string; columns: ColumnInfo[] } | null;
   databaseInfo: { dbName: string; schemaVersion: number; tableCount: number; platform: string } | null;
 
+  // All schemas (for graph relationships)
+  allSchemas: Record<string, ColumnInfo[]>;
+
   // SQL Console
   queryHistory: QueryHistoryEntry[];
   sqlResult: { columns: string[]; rows: Record<string, unknown>[]; rowCount: number; executionTimeMs: number } | null;
@@ -48,6 +51,7 @@ interface AppState {
   setTableData: (data: AppState['tableData']) => void;
   setSchema: (schema: AppState['schema']) => void;
   setDatabaseInfo: (info: AppState['databaseInfo']) => void;
+  setAllSchemas: (schemas: Record<string, ColumnInfo[]>) => void;
   setSqlResult: (result: AppState['sqlResult']) => void;
   addQueryHistory: (entry: QueryHistoryEntry) => void;
   setLoading: (key: string, value: boolean) => void;
@@ -63,6 +67,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   tableData: null,
   schema: null,
   databaseInfo: null,
+  allSchemas: {},
   queryHistory: [],
   sqlResult: null,
   loading: {},
@@ -86,6 +91,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTableData: (data) => set({ tableData: data }),
   setSchema: (schema) => set({ schema }),
   setDatabaseInfo: (info) => set({ databaseInfo: info }),
+  setAllSchemas: (schemas) => set({ allSchemas: schemas }),
   setSqlResult: (result) => set({ sqlResult: result }),
 
   addQueryHistory: (entry) => set((state) => ({

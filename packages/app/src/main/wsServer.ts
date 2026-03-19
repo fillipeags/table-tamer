@@ -23,6 +23,7 @@ export function createWsServer(emit: EmitFn): WebSocketServer {
   console.log(`[TableTamer] WebSocket server listening on port ${DEFAULT_PORT}`);
 
   wss.on('connection', (ws) => {
+    console.log('[TableTamer:main] New WS connection received');
     const clientId = randomUUID();
     const client: ConnectedClient = {
       id: clientId,
@@ -35,6 +36,7 @@ export function createWsServer(emit: EmitFn): WebSocketServer {
       try {
         const message = JSON.parse(data.toString());
 
+        console.log('[TableTamer:main] Message received, type:', message.type);
         if (message.type === 'handshake') {
           // Update client info from handshake
           client.appName = message.payload.appName;
@@ -43,7 +45,8 @@ export function createWsServer(emit: EmitFn): WebSocketServer {
           client.dbName = message.payload.dbName;
           client.schemaVersion = message.payload.schemaVersion;
 
-          emit('ws:client-connected', null, {
+          console.log('[TableTamer:main] Emitting ws:client-connected for', client.appName);
+          emit('ws:client-connected', {
             id: clientId,
             appName: client.appName,
             appVersion: client.appVersion,
@@ -52,7 +55,7 @@ export function createWsServer(emit: EmitFn): WebSocketServer {
             schemaVersion: client.schemaVersion,
           });
         } else if (message.type === 'response') {
-          emit('ws:message-received', null, clientId, message);
+          emit('ws:message-received', clientId, message);
         }
       } catch (err) {
         console.error('[TableTamer] Failed to parse message:', err);
@@ -61,7 +64,7 @@ export function createWsServer(emit: EmitFn): WebSocketServer {
 
     ws.on('close', () => {
       clients.delete(clientId);
-      emit('ws:client-disconnected', null, clientId);
+      emit('ws:client-disconnected', clientId);
     });
 
     ws.on('error', (err) => {

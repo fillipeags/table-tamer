@@ -16,9 +16,9 @@ export class Connection {
 
   constructor(options: ConnectionOptions) {
     this.options = {
-      host: 'localhost',
-      port: DEFAULT_PORT,
       ...options,
+      host: options.host || 'localhost',
+      port: options.port || DEFAULT_PORT,
     };
   }
 
@@ -37,7 +37,8 @@ export class Connection {
   }
 
   send(message: Message): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    // readyState 1 === OPEN (avoid relying on WebSocket.OPEN constant in RN)
+    if (this.ws && this.ws.readyState === 1) {
       this.ws.send(JSON.stringify(message));
     }
   }
@@ -49,9 +50,11 @@ export class Connection {
   private attemptConnect(): void {
     try {
       const url = `ws://${this.options.host}:${this.options.port}`;
+      console.log(`[TableTamer] Attempting connection to ${url}`);
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
+        console.log('[TableTamer] WebSocket onopen fired');
         this.options.onConnect();
       };
 
@@ -64,15 +67,17 @@ export class Connection {
         }
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (event: CloseEvent) => {
+        console.log(`[TableTamer] WebSocket onclose: code=${event.code} reason="${event.reason}" wasClean=${event.wasClean}`);
         this.options.onDisconnect();
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = () => {
-        // onclose will fire after onerror
+      this.ws.onerror = (event: Event) => {
+        console.error('[TableTamer] WebSocket onerror:', (event as any).message || 'unknown error');
       };
-    } catch {
+    } catch (err) {
+      console.error('[TableTamer] Connection attempt threw:', err);
       this.scheduleReconnect();
     }
   }

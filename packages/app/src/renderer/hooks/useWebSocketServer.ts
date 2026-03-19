@@ -11,6 +11,7 @@ export function useWebSocketServer() {
 
     cleanups.push(
       window.tableTamer.onClientConnected((_event, clientInfo) => {
+        console.log('[TableTamer:renderer] onClientConnected fired, event:', _event, 'clientInfo:', clientInfo);
         addDevice({
           id: clientInfo.id,
           appName: clientInfo.appName || 'Unknown',

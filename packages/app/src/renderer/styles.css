@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface-0: #0c0e14;
+  --color-surface-1: #12141c;
+  --color-surface-2: #1a1d28;
+  --color-surface-3: #242834;
+  --color-border: #2a2e3a;
+  --color-border-subtle: #1f2330;
+  --color-text-primary: #e4e5e9;
+  --color-text-secondary: #8b8fa3;
+  --color-text-muted: #565b6e;
+  --color-accent: #005dff;
+  --color-accent-dim: #003db3;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-warning: #f59e0b;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #2e3444;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--color-surface-0);
+  color: var(--color-text-primary);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ReactFlow dark theme overrides */
+.react-flow__controls button {
+  background: var(--color-surface-2) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+  fill: var(--color-text-secondary) !important;
+}
+.react-flow__controls button:hover {
+  background: var(--color-surface-3) !important;
+}
+.react-flow__controls button svg {
+  fill: var(--color-text-secondary) !important;
+}
+.react-flow__minimap {
+  background: var(--color-surface-1) !important;
+  border: 1px solid var(--color-border) !important;
+}
+.react-flow__attribution {
+  display: none !important;
+}

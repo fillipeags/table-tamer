@@ -11,7 +11,9 @@ export type RequestAction =
   | 'get_table_list'
   | 'get_table_data'
   | 'get_schema'
-  | 'execute_sql';
+  | 'execute_sql'
+  | 'update_record'
+  | 'delete_records';
 
 // ── Handshake ──
 export interface HandshakePayload {
@@ -56,12 +58,28 @@ export interface ExecuteSqlRequest {
   args?: unknown[];
 }
 
+export interface UpdateRecordRequest {
+  action: 'update_record';
+  tableName: string;
+  recordId: string;
+  column: string;
+  value: unknown;
+}
+
+export interface DeleteRecordsRequest {
+  action: 'delete_records';
+  tableName: string;
+  recordIds: string[];
+}
+
 export type RequestPayload =
   | GetDatabaseInfoRequest
   | GetTableListRequest
   | GetTableDataRequest
   | GetSchemaRequest
-  | ExecuteSqlRequest;
+  | ExecuteSqlRequest
+  | UpdateRecordRequest
+  | DeleteRecordsRequest;
 
 export interface RequestMessage extends MessageEnvelope {
   type: 'request';
@@ -117,6 +135,16 @@ export interface ExecuteSqlResponse {
   executionTimeMs: number;
 }
 
+export interface UpdateRecordResponse {
+  action: 'update_record';
+  success: boolean;
+}
+
+export interface DeleteRecordsResponse {
+  action: 'delete_records';
+  deletedCount: number;
+}
+
 export interface ErrorResponse {
   action: RequestAction;
   error: string;
@@ -128,6 +156,8 @@ export type ResponsePayload =
   | GetTableDataResponse
   | GetSchemaResponse
   | ExecuteSqlResponse
+  | UpdateRecordResponse
+  | DeleteRecordsResponse
   | ErrorResponse;
 
 export interface ResponseMessage extends MessageEnvelope {
@@ -144,10 +174,24 @@ export function isErrorResponse(payload: ResponsePayload): payload is ErrorRespo
   return 'error' in payload;
 }
 
+function generateId(): string {
+  // Use crypto.randomUUID if available (Node.js, modern browsers),
+  // otherwise fallback for React Native / Hermes
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Simple v4-like UUID fallback
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export function createEnvelope(): MessageEnvelope {
   return {
     version: 1,
-    id: crypto.randomUUID(),
+    id: generateId(),
     timestamp: Date.now(),
   };
 }

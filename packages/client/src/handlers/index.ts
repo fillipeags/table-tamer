@@ -5,6 +5,8 @@ import { handleGetTableList } from './tableList';
 import { handleGetTableData } from './tableData';
 import { handleGetSchema } from './schemaInfo';
 import { handleExecuteSql } from './sqlExecute';
+import { handleUpdateRecord } from './updateRecord';
+import { handleDeleteRecords } from './deleteRecords';
 
 type Handler = (request: any, database: Database, platform: string) => Promise<ResponsePayload>;
 
@@ -14,6 +16,8 @@ const handlers: Record<RequestAction, Handler> = {
   get_table_data: handleGetTableData,
   get_schema: handleGetSchema,
   execute_sql: handleExecuteSql,
+  update_record: handleUpdateRecord,
+  delete_records: handleDeleteRecords,
 };
 
 export async function handleRequest(

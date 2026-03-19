@@ -2,13 +2,35 @@
   "name": "table-tamer",
   "private": true,
   "packageManager": "pnpm@9.15.0",
+  "version": "0.1.0",
+  "description": "A real-time WatermelonDB/SQLite inspector for React Native apps",
+  "author": "fillipeags",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fillipeags/table-tamer.git"
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "dist": "pnpm --filter @table-tamer/app dist",
+    "dist:mac": "pnpm --filter @table-tamer/app dist:mac",
+    "dist:win": "pnpm --filter @table-tamer/app dist:win",
+    "dist:linux": "pnpm --filter @table-tamer/app dist:linux",
+    "lint": "eslint packages/*/src --ext .ts,.tsx",
+    "lint:fix": "eslint packages/*/src --ext .ts,.tsx --fix",
+    "prepare": "husky",
+    "release": "release-it"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "husky": "^9.0.0",
+    "release-it": "^18.0.0",
+    "@release-it/conventional-changelog": "^9.0.0"
   }
 }

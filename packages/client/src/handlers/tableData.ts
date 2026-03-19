@@ -1,7 +1,8 @@
 import type { GetTableDataRequest, GetTableDataResponse } from '@table-tamer/core';
 import { MAX_ROWS_LIMIT, DEFAULT_PAGE_SIZE } from '@table-tamer/core';
 import type { Database } from '@nozbe/watermelondb';
-import { promisifyAdapterMethod, sanitizeRow } from '../utils';
+import { Q } from '@nozbe/watermelondb';
+import { sanitizeRow } from '../utils';
 
 export async function handleGetTableData(
   request: GetTableDataRequest,
@@ -11,11 +12,12 @@ export async function handleGetTableData(
   const pageSize = Math.min(request.pageSize || DEFAULT_PAGE_SIZE, MAX_ROWS_LIMIT);
   const offset = (page - 1) * pageSize;
 
+  const collection = database.collections.get(tableName);
+
   // Get total count
-  const countSql = `SELECT COUNT(*) as cnt FROM "${tableName}"`;
-  const countRows = await promisifyAdapterMethod<any[]>((cb) =>
-    (database.adapter as any).unsafeQueryRaw({ type: 'sqlQuery', sql: countSql, args: [] }, cb)
-  );
+  const countRows: any[] = await collection
+    .query(Q.unsafeSqlQuery(`SELECT COUNT(*) as cnt FROM "${tableName}"`))
+    .unsafeFetchRaw();
   const totalCount = countRows[0]?.cnt ?? 0;
 
   // Get paginated data
@@ -25,14 +27,13 @@ export async function handleGetTableData(
   }
   dataSql += ` LIMIT ${pageSize} OFFSET ${offset}`;
 
-  const rows = await promisifyAdapterMethod<any[]>((cb) =>
-    (database.adapter as any).unsafeQueryRaw({ type: 'sqlQuery', sql: dataSql, args: [] }, cb)
-  );
+  const rows: any[] = await collection
+    .query(Q.unsafeSqlQuery(dataSql))
+    .unsafeFetchRaw();
 
-  // Extract column names from first row or schema
   const columns = rows.length > 0
     ? Object.keys(rows[0])
-    : Object.keys(database.schema.tables[tableName]?.columns ?? {});
+    : ['id', ...Object.keys(database.schema.tables[tableName]?.columns ?? {})];
 
   return {
     action: 'get_table_data',

@@ -24,6 +24,7 @@ export function sanitizeValue(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (typeof value === 'string') {
     // Detect likely binary data (non-printable chars)
+    // eslint-disable-next-line no-control-regex
     if (/[\x00-\x08\x0E-\x1F]/.test(value) && value.length > 100) {
       return `[BLOB: ${value.length} bytes]`;
     }

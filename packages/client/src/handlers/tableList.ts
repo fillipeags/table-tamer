@@ -1,30 +1,33 @@
 import type { GetTableListRequest, GetTableListResponse, TableListItem } from '@table-tamer/core';
-import { MAX_ROWS_LIMIT } from '@table-tamer/core';
 import type { Database } from '@nozbe/watermelondb';
-import { promisifyAdapterMethod } from '../utils';
+import { Q } from '@nozbe/watermelondb';
 
 export async function handleGetTableList(
   _request: GetTableListRequest,
   database: Database
 ): Promise<GetTableListResponse> {
   const tableNames = Object.keys(database.schema.tables);
-
-  // Build a UNION ALL query to get counts for all tables in a single query
-  const unionParts = tableNames.map(
-    (name) => `SELECT '${name}' as table_name, COUNT(*) as cnt FROM "${name}"`
-  );
-
-  // SQLite has a limit on compound SELECT statements, batch if needed
-  const batchSize = 50;
   const tables: TableListItem[] = [];
 
-  for (let i = 0; i < unionParts.length; i += batchSize) {
-    const batch = unionParts.slice(i, i + batchSize);
-    const sql = batch.join(' UNION ALL ');
+  // Use the first table's collection to run UNION ALL count queries
+  const firstTable = tableNames[0];
+  if (!firstTable) {
+    return { action: 'get_table_list', tables: [] };
+  }
 
-    const rows = await promisifyAdapterMethod<any[]>((cb) =>
-      (database.adapter as any).unsafeQueryRaw({ type: 'sqlQuery', sql, args: [] }, cb)
-    );
+  const collection = database.collections.get(firstTable);
+
+  // Batch in groups of 50 to avoid SQLite compound SELECT limits
+  const batchSize = 50;
+  for (let i = 0; i < tableNames.length; i += batchSize) {
+    const batch = tableNames.slice(i, i + batchSize);
+    const sql = batch
+      .map((name) => `SELECT '${name}' as table_name, COUNT(*) as cnt FROM "${name}"`)
+      .join(' UNION ALL ');
+
+    const rows: any[] = await collection
+      .query(Q.unsafeSqlQuery(sql))
+      .unsafeFetchRaw();
 
     for (const row of rows) {
       tables.push({
@@ -34,7 +37,6 @@ export async function handleGetTableList(
     }
   }
 
-  // Sort by name
   tables.sort((a, b) => a.name.localeCompare(b.name));
 
   return {

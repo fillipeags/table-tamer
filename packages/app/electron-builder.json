@@ -7,14 +7,30 @@
   "files": [
     "dist/**/*"
   ],
+  "icon": "build/icons/icon.png",
   "mac": {
-    "target": "dmg",
-    "icon": null
+    "target": ["dmg", "zip"],
+    "icon": "build/icons/icon.icns",
+    "category": "public.app-category.developer-tools"
+  },
+  "dmg": {
+    "icon": "build/icons/icon.icns",
+    "contents": [
+      { "x": 130, "y": 220 },
+      { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+    ]
   },
   "win": {
-    "target": "nsis"
+    "target": ["nsis", "portable"],
+    "icon": "build/icons/icon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
   },
   "linux": {
-    "target": "AppImage"
+    "target": ["deb", "AppImage"],
+    "icon": "build/icons/icon.png",
+    "category": "Development"
   }
 }
