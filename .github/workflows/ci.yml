@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -16,9 +14,52 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm build
+
+  build-binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Build Electron app
+        run: pnpm --filter @table-tamer/app dist:${{ matrix.platform }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: table-tamer-${{ matrix.platform }}-pr${{ github.event.pull_request.number }}
+          path: |
+            packages/app/out/*.dmg
+            packages/app/out/*.zip
+            packages/app/out/*.exe
+            packages/app/out/*.deb
+            packages/app/out/*.AppImage
+          if-no-files-found: ignore
+          retention-days: 7

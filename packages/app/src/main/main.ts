@@ -1,6 +1,7 @@
 import { app, BrowserWindow, screen } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { autoUpdater } from 'electron-updater';
 import { createWsServer } from './wsServer';
 import { registerIpcHandlers } from './ipcHandlers';
 
@@ -80,6 +81,7 @@ app.whenReady().then(() => {
     mainWindow?.webContents.send(event, ...args);
   });
   registerIpcHandlers();
+  autoUpdater.checkForUpdatesAndNotify();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

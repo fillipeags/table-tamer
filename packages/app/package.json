@@ -24,6 +24,7 @@
   "dependencies": {
     "@table-tamer/core": "workspace:*",
     "@xyflow/react": "^12.10.1",
+    "electron-updater": "^6.3.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

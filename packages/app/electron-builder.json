@@ -1,7 +1,11 @@
 {
   "appId": "com.table-tamer.app",
   "productName": "Table Tamer",
-  "publish": null,
+  "publish": {
+    "provider": "github",
+    "owner": "fillipeags",
+    "repo": "table-tamer"
+  },
   "directories": {
     "output": "out"
   },

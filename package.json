@@ -21,7 +21,10 @@
     "lint": "eslint packages/*/src --ext .ts,.tsx",
     "lint:fix": "eslint packages/*/src --ext .ts,.tsx --fix",
     "prepare": "husky",
-    "release": "release-it"
+    "release": "release-it",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
