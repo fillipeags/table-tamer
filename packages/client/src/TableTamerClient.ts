@@ -16,6 +16,9 @@ export interface ConnectInspectorOptions {
   platform?: string;
   host?: string;
   port?: number;
+  readOnly?: boolean;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
 }
 
 let activeClient: TableTamerClient | null = null;
@@ -24,11 +27,17 @@ class TableTamerClient {
   private connection: Connection;
   private database: Database;
   private platform: string;
+  private readOnly: boolean;
   private handshakePayload: HandshakePayload;
+  private userOnConnect?: () => void;
+  private userOnDisconnect?: () => void;
 
   constructor(options: ConnectInspectorOptions) {
     this.database = options.database;
     this.platform = options.platform || 'unknown';
+    this.readOnly = options.readOnly ?? false;
+    this.userOnConnect = options.onConnect;
+    this.userOnDisconnect = options.onDisconnect;
 
     this.handshakePayload = {
       appName: options.appName || 'React Native App',
@@ -61,17 +70,24 @@ class TableTamerClient {
     console.log('[TableTamer] Connected to desktop app');
     const handshake = createHandshake(this.handshakePayload);
     this.connection.send(handshake);
+    this.userOnConnect?.();
   }
 
   private onDisconnect(): void {
     console.log('[TableTamer] Disconnected from desktop app');
+    this.userOnDisconnect?.();
   }
 
   private async onMessage(message: Message): Promise<void> {
     if (message.type !== 'request') return;
 
     const request = message as RequestMessage;
-    const responsePayload = await handleRequest(request.payload, this.database, this.platform);
+    const responsePayload = await handleRequest(
+      request.payload,
+      this.database,
+      this.platform,
+      this.readOnly,
+    );
     const response = createResponse(request.id, responsePayload);
     this.connection.send(response);
   }

@@ -16,13 +16,26 @@
   "mac": {
     "target": ["dmg", "zip"],
     "icon": "build/icons/icon.icns",
-    "category": "public.app-category.developer-tools"
+    "category": "public.app-category.developer-tools",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "notarize": {
+      "teamId": "${env.APPLE_TEAM_ID}"
+    }
   },
   "dmg": {
     "icon": "build/icons/icon.icns",
+    "background": "build/background.png",
+    "window": {
+      "width": 540,
+      "height": 380
+    },
+    "iconSize": 80,
     "contents": [
-      { "x": 130, "y": 220 },
-      { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      { "x": 160, "y": 175 },
+      { "x": 380, "y": 175, "type": "link", "path": "/Applications" }
     ]
   },
   "win": {

@@ -91,3 +91,20 @@ pnpm --filter @table-tamer/core test  # Run tests for a specific package
 ```
 
 Test files live in `src/__tests__/` within each package.
+
+## Security
+
+- **Parameterized queries:** `updateRecord` and `deleteRecords` handlers use `?` placeholders instead of string interpolation to prevent SQL injection
+- **Read-only mode:** Pass `readOnly: true` to `connectInspector()` to block all write operations (update, delete, write SQL)
+- **SQL console:** `execute_sql` in read-only mode only allows SELECT, PRAGMA, and EXPLAIN
+
+## Post-Development Checklist
+
+After finishing any feature, bugfix, or refactor, always:
+
+1. **Run tests:** `pnpm build && pnpm test` — fix any failures
+2. **Check coverage:** `pnpm test:coverage` — add tests for new/changed code, maintain 100%
+3. **Run lint:** `pnpm lint` — fix any new errors (pre-existing app warnings are ok)
+4. **Check for regressions:** Review existing tests that touch modified modules
+5. **Update docs:** If the change affects public API, update README.md, CLAUDE.md, and docs/
+6. **Update roadmap:** If the change resolves a roadmap item, mark it as done in `docs/roadmap/README.md`

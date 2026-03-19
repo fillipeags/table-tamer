@@ -11,22 +11,8 @@ This document tracks pending improvements, known issues, and planned features.
 - **Alternative**: Rename packages to unscoped names (e.g., `table-tamer-core`, `table-tamer-client`)
 
 ### macOS DMG "damaged" error
-- **Status**: Known issue
-- **Issue**: `"Table Tamer.app" is damaged and can't be opened` — happens because the app is not code-signed
-- **Fix**: Configure Apple code signing in CI
-- **Steps**:
-  1. Export your Apple Developer ID certificate as `.p12` file
-  2. Base64 encode it: `base64 -i certificate.p12 | pbcopy`
-  3. Add GitHub secrets:
-     - `CSC_LINK` — the base64-encoded `.p12`
-     - `CSC_KEY_PASSWORD` — the certificate password
-  4. Update `packages/app/electron-builder.json` to add signing identity
-  5. For full Gatekeeper compliance, also configure **notarization**:
-     - `APPLE_ID` — your Apple ID email
-     - `APPLE_APP_SPECIFIC_PASSWORD` — generated at appleid.apple.com
-     - `APPLE_TEAM_ID` — your team ID
-     - Add `afterSign` hook in electron-builder config
-- **Workaround**: Users can bypass with `xattr -cr "/Applications/Table Tamer.app"`
+- **Status**: ✅ Done
+- **Fix**: Configured code signing (hardened runtime + entitlements) and notarization via electron-builder's built-in support. GitHub Secrets: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
 
 ## CI/CD Improvements
 
@@ -41,14 +27,12 @@ This document tracks pending improvements, known issues, and planned features.
 - **Fix**: Purchase an EV code signing certificate and configure in electron-builder
 
 ### Lockfile sync after release-it bump
-- **Status**: Minor issue
-- **Issue**: release-it bumps `package.json` version but doesn't update `pnpm-lock.yaml`, which may cause `--frozen-lockfile` to fail in subsequent runs
-- **Fix**: Add `"after:bump": "pnpm install --no-frozen-lockfile && pnpm build"` in `.release-it.json`
+- **Status**: ✅ Done
+- **Fix**: Added `pnpm install --no-frozen-lockfile` to the `after:bump` hook in `.release-it.json`
 
 ### Separate npm publish from binary builds
-- **Status**: Planned
-- **Issue**: npm publish currently depends on `build-binaries` completing, but they're independent
-- **Fix**: Make `publish-npm` depend only on `create-release`, not `build-binaries`
+- **Status**: ✅ Done
+- **Fix**: `publish-npm` now depends only on `create-release`, not `build-binaries`
 
 ## Feature Improvements
 
@@ -87,7 +71,7 @@ This document tracks pending improvements, known issues, and planned features.
 - [ ] Support for expo-sqlite
 - [ ] Support for TypeORM
 - [ ] Reactotron plugin mode (embed as a Reactotron plugin instead of standalone)
-- [ ] Connection status events (onConnect, onDisconnect callbacks)
+- [x] Connection status events (`onConnect`, `onDisconnect` callbacks in `connectInspector`)
 
 ## Performance
 
@@ -98,9 +82,9 @@ This document tracks pending improvements, known issues, and planned features.
 
 ## Security
 
-- [ ] Read-only mode — option to disable update/delete in production-adjacent environments
+- [x] Read-only mode — `readOnly: true` option blocks all write operations
 - [ ] Connection authentication — optional token/password to prevent unauthorized access
-- [ ] SQL injection prevention — parameterized queries for update/delete handlers
+- [x] SQL injection prevention — parameterized queries for update/delete handlers
 
 ## Documentation
 

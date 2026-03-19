@@ -19,6 +19,6 @@
   },
   "hooks": {
     "before:init": "pnpm lint",
-    "after:bump": "node scripts/sync-versions.mjs ${version} && pnpm build"
+    "after:bump": "node scripts/sync-versions.mjs ${version} && pnpm install --no-frozen-lockfile && pnpm build"
   }
 }

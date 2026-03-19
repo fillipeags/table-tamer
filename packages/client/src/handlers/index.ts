@@ -20,11 +20,35 @@ const handlers: Record<RequestAction, Handler> = {
   delete_records: handleDeleteRecords,
 };
 
+const WRITE_ACTIONS: Set<RequestAction> = new Set([
+  'update_record',
+  'delete_records',
+]);
+
 export async function handleRequest(
   payload: RequestPayload,
   database: Database,
-  platform: string
+  platform: string,
+  readOnly = false,
 ): Promise<ResponsePayload> {
+  if (readOnly && WRITE_ACTIONS.has(payload.action)) {
+    return {
+      action: payload.action,
+      error: 'Write operations are disabled in read-only mode',
+    };
+  }
+
+  if (readOnly && payload.action === 'execute_sql') {
+    const trimmed = payload.sql.trim().toUpperCase();
+    const isRead = trimmed.startsWith('SELECT') || trimmed.startsWith('PRAGMA') || trimmed.startsWith('EXPLAIN');
+    if (!isRead) {
+      return {
+        action: payload.action,
+        error: 'Write operations are disabled in read-only mode',
+      };
+    }
+  }
+
   const handler = handlers[payload.action];
   if (!handler) {
     return {

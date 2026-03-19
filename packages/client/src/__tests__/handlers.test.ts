@@ -625,7 +625,7 @@ describe('handleRequest', () => {
   });
 
   describe('update_record', () => {
-    it('updates a record with string value', async () => {
+    it('updates a record with string value using parameterized query', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -643,11 +643,11 @@ describe('handleRequest', () => {
 
       expect(result).toEqual({ action: 'update_record', success: true });
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "name" = 'John' WHERE id = 'abc'`, []]],
+        sqls: [[`UPDATE "users" SET "name" = ? WHERE id = ?`, ['John', 'abc']]],
       });
     });
 
-    it('handles null value', async () => {
+    it('handles null value as parameter', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -664,11 +664,11 @@ describe('handleRequest', () => {
       );
 
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "name" = NULL WHERE id = 'abc'`, []]],
+        sqls: [[`UPDATE "users" SET "name" = ? WHERE id = ?`, [null, 'abc']]],
       });
     });
 
-    it('handles numeric value', async () => {
+    it('handles numeric value as parameter', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -685,11 +685,11 @@ describe('handleRequest', () => {
       );
 
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "age" = 25 WHERE id = 'abc'`, []]],
+        sqls: [[`UPDATE "users" SET "age" = ? WHERE id = ?`, [25, 'abc']]],
       });
     });
 
-    it('handles boolean value true', async () => {
+    it('converts boolean true to 1', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -706,11 +706,11 @@ describe('handleRequest', () => {
       );
 
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "active" = 1 WHERE id = 'abc'`, []]],
+        sqls: [[`UPDATE "users" SET "active" = ? WHERE id = ?`, [1, 'abc']]],
       });
     });
 
-    it('handles boolean value false', async () => {
+    it('converts boolean false to 0', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -727,11 +727,11 @@ describe('handleRequest', () => {
       );
 
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "active" = 0 WHERE id = 'abc'`, []]],
+        sqls: [[`UPDATE "users" SET "active" = ? WHERE id = ?`, [0, 'abc']]],
       });
     });
 
-    it('escapes single quotes in string values', async () => {
+    it('safely handles values with special characters via parameters', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -741,41 +741,21 @@ describe('handleRequest', () => {
           tableName: 'users',
           recordId: 'abc',
           column: 'name',
-          value: "O'Brien",
+          value: "O'Brien; DROP TABLE users;--",
         },
         database,
         'ios',
       );
 
+      // Value is passed as parameter, not interpolated into SQL
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "name" = 'O''Brien' WHERE id = 'abc'`, []]],
-      });
-    });
-
-    it('escapes single quotes in recordId', async () => {
-      const unsafeExecute = vi.fn().mockResolvedValue(undefined);
-      const { database } = createMockDatabase({ unsafeExecute });
-
-      await handleRequest(
-        {
-          action: 'update_record',
-          tableName: 'users',
-          recordId: "id'with'quotes",
-          column: 'name',
-          value: 'test',
-        },
-        database,
-        'ios',
-      );
-
-      expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`UPDATE "users" SET "name" = 'test' WHERE id = 'id''with''quotes'`, []]],
+        sqls: [[`UPDATE "users" SET "name" = ? WHERE id = ?`, ["O'Brien; DROP TABLE users;--", 'abc']]],
       });
     });
   });
 
   describe('delete_records', () => {
-    it('deletes records by ids', async () => {
+    it('deletes records using parameterized query', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -791,7 +771,7 @@ describe('handleRequest', () => {
 
       expect(result).toEqual({ action: 'delete_records', deletedCount: 3 });
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`DELETE FROM "users" WHERE id IN ('id1', 'id2', 'id3')`, []]],
+        sqls: [[`DELETE FROM "users" WHERE id IN (?, ?, ?)`, ['id1', 'id2', 'id3']]],
       });
     });
 
@@ -813,7 +793,7 @@ describe('handleRequest', () => {
       expect(unsafeExecute).not.toHaveBeenCalled();
     });
 
-    it('deletes a single record', async () => {
+    it('deletes a single record with parameterized query', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -829,11 +809,11 @@ describe('handleRequest', () => {
 
       expect(result).toEqual({ action: 'delete_records', deletedCount: 1 });
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`DELETE FROM "posts" WHERE id IN ('single-id')`, []]],
+        sqls: [[`DELETE FROM "posts" WHERE id IN (?)`, ['single-id']]],
       });
     });
 
-    it('escapes single quotes in record ids', async () => {
+    it('safely handles ids with special characters via parameters', async () => {
       const unsafeExecute = vi.fn().mockResolvedValue(undefined);
       const { database } = createMockDatabase({ unsafeExecute });
 
@@ -847,9 +827,98 @@ describe('handleRequest', () => {
         'ios',
       );
 
+      // IDs are passed as parameters, not interpolated
       expect(unsafeExecute).toHaveBeenCalledWith({
-        sqls: [[`DELETE FROM "users" WHERE id IN ('id''with''quotes')`, []]],
+        sqls: [[`DELETE FROM "users" WHERE id IN (?)`, ["id'with'quotes"]]],
       });
+    });
+  });
+
+  describe('read-only mode', () => {
+    it('blocks update_record in read-only mode', async () => {
+      const { database } = createMockDatabase();
+
+      const result = await handleRequest(
+        {
+          action: 'update_record',
+          tableName: 'users',
+          recordId: 'abc',
+          column: 'name',
+          value: 'test',
+        },
+        database,
+        'ios',
+        true,
+      );
+
+      expect((result as any).error).toBe('Write operations are disabled in read-only mode');
+    });
+
+    it('blocks delete_records in read-only mode', async () => {
+      const { database } = createMockDatabase();
+
+      const result = await handleRequest(
+        {
+          action: 'delete_records',
+          tableName: 'users',
+          recordIds: ['id1'],
+        },
+        database,
+        'ios',
+        true,
+      );
+
+      expect((result as any).error).toBe('Write operations are disabled in read-only mode');
+    });
+
+    it('blocks write SQL in read-only mode', async () => {
+      const { database } = createMockDatabase({
+        tables: { users: { columns: {} } },
+      });
+
+      const result = await handleRequest(
+        {
+          action: 'execute_sql',
+          sql: "INSERT INTO users VALUES ('1', 'Alice')",
+        },
+        database,
+        'ios',
+        true,
+      );
+
+      expect((result as any).error).toBe('Write operations are disabled in read-only mode');
+    });
+
+    it('allows SELECT SQL in read-only mode', async () => {
+      const { database } = createMockDatabase({
+        tables: { users: { columns: {} } },
+        queryResults: [{ id: '1' }],
+      });
+
+      const result = await handleRequest(
+        { action: 'execute_sql', sql: 'SELECT * FROM users' },
+        database,
+        'ios',
+        true,
+      );
+
+      expect((result as any).rows).toHaveLength(1);
+    });
+
+    it('allows read operations in read-only mode', async () => {
+      const { database } = createMockDatabase({
+        tables: { users: { columns: {} } },
+      });
+
+      const result = await handleRequest(
+        { action: 'get_database_info' },
+        database,
+        'ios',
+        true,
+      );
+
+      expect((result as any).action).toBe('get_database_info');
+      expect((result as any).error).toBeUndefined();
     });
   });
 });
