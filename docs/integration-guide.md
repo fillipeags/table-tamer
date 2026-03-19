@@ -12,16 +12,16 @@ This guide explains how to integrate Table Tamer into your React Native project 
 
 ```bash
 # npm
-npm install table-tamer
+npm install @table-tamer/react-native
 
 # yarn
-yarn add table-tamer
+yarn add @table-tamer/react-native
 
 # pnpm
-pnpm add table-tamer
+pnpm add @table-tamer/react-native
 ```
 
-> **Note**: The `table-tamer` package re-exports everything from `@table-tamer/client` and `@table-tamer/core`. You only need this one package.
+> **Note**: The `@table-tamer/react-native` package re-exports everything from `@table-tamer/client` and `@table-tamer/core`. You only need this one package.
 
 ## Step 2: Create configuration file
 
@@ -32,7 +32,7 @@ import { Platform } from 'react-native';
 
 if (__DEV__) {
   // Lazy require to avoid bundling in production
-  const { connectInspector } = require('table-tamer');
+  const { connectInspector } = require('@table-tamer/react-native');
 
   // Import your WatermelonDB instance
   const wmdb = require('../wmdb/wmdb').default; // adjust path

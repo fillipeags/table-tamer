@@ -19,7 +19,7 @@
 <p align="center">
   <a href="https://github.com/fillipeags/table-tamer/actions/workflows/ci.yml"><img src="https://github.com/fillipeags/table-tamer/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/fillipeags/table-tamer/actions/workflows/release.yml"><img src="https://github.com/fillipeags/table-tamer/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
-  <a href="https://www.npmjs.com/package/table-tamer"><img src="https://img.shields.io/npm/v/table-tamer.svg" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@table-tamer/react-native"><img src="https://img.shields.io/npm/v/@table-tamer/react-native.svg" alt="npm version" /></a>
   <a href="https://github.com/fillipeags/table-tamer/releases/latest"><img src="https://img.shields.io/github/v/release/fillipeags/table-tamer" alt="GitHub Release" /></a>
   <a href="https://github.com/fillipeags/table-tamer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fillipeags/table-tamer" alt="License" /></a>
 </p>
@@ -66,13 +66,13 @@ Download the latest release from the [Releases page](https://github.com/fillipea
 
 ```bash
 # npm
-npm install table-tamer
+npm install @table-tamer/react-native
 
 # yarn
-yarn add table-tamer
+yarn add @table-tamer/react-native
 
 # pnpm
-pnpm add table-tamer
+pnpm add @table-tamer/react-native
 ```
 
 ### 2. Configure the client
@@ -83,7 +83,7 @@ Create a configuration file (e.g., `src/config/TableTamerConfig.ts`):
 import { Platform } from 'react-native';
 
 if (__DEV__) {
-  const { connectInspector } = require('table-tamer');
+  const { connectInspector } = require('@table-tamer/react-native');
   const wmdb = require('./path/to/your/watermelondb-instance').default;
 
   connectInspector({

@@ -177,6 +177,6 @@ jobs:
         run: |
           pnpm --filter @table-tamer/core publish --no-git-checks --access public || true
           pnpm --filter @table-tamer/client publish --no-git-checks --access public || true
-          pnpm --filter table-tamer publish --no-git-checks --access public || true
+          pnpm --filter @table-tamer/react-native publish --no-git-checks --access public || true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
