@@ -16,7 +16,14 @@
   "mac": {
     "target": ["dmg", "zip"],
     "icon": "build/icons/icon.icns",
-    "category": "public.app-category.developer-tools"
+    "category": "public.app-category.developer-tools",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "notarize": {
+      "teamId": "${env.APPLE_TEAM_ID}"
+    }
   },
   "dmg": {
     "icon": "build/icons/icon.icns",

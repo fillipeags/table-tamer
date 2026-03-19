@@ -11,22 +11,8 @@ This document tracks pending improvements, known issues, and planned features.
 - **Alternative**: Rename packages to unscoped names (e.g., `table-tamer-core`, `table-tamer-client`)
 
 ### macOS DMG "damaged" error
-- **Status**: Known issue
-- **Issue**: `"Table Tamer.app" is damaged and can't be opened` — happens because the app is not code-signed
-- **Fix**: Configure Apple code signing in CI
-- **Steps**:
-  1. Export your Apple Developer ID certificate as `.p12` file
-  2. Base64 encode it: `base64 -i certificate.p12 | pbcopy`
-  3. Add GitHub secrets:
-     - `CSC_LINK` — the base64-encoded `.p12`
-     - `CSC_KEY_PASSWORD` — the certificate password
-  4. Update `packages/app/electron-builder.json` to add signing identity
-  5. For full Gatekeeper compliance, also configure **notarization**:
-     - `APPLE_ID` — your Apple ID email
-     - `APPLE_APP_SPECIFIC_PASSWORD` — generated at appleid.apple.com
-     - `APPLE_TEAM_ID` — your team ID
-     - Add `afterSign` hook in electron-builder config
-- **Workaround**: Users can bypass with `xattr -cr "/Applications/Table Tamer.app"`
+- **Status**: ✅ Done
+- **Fix**: Configured code signing (hardened runtime + entitlements) and notarization via electron-builder's built-in support. GitHub Secrets: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
 
 ## CI/CD Improvements
 
