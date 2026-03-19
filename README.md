@@ -179,6 +179,9 @@ interface ConnectInspectorOptions {
   platform?: string;       // 'ios' | 'android'
   host?: string;           // WebSocket host (default: 'localhost')
   port?: number;           // WebSocket port (default: 8765)
+  readOnly?: boolean;      // Block all write operations (default: false)
+  onConnect?: () => void;  // Called when connection is established
+  onDisconnect?: () => void; // Called when connection is lost
 }
 ```
 

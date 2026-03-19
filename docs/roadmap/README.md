@@ -41,14 +41,12 @@ This document tracks pending improvements, known issues, and planned features.
 - **Fix**: Purchase an EV code signing certificate and configure in electron-builder
 
 ### Lockfile sync after release-it bump
-- **Status**: Minor issue
-- **Issue**: release-it bumps `package.json` version but doesn't update `pnpm-lock.yaml`, which may cause `--frozen-lockfile` to fail in subsequent runs
-- **Fix**: Add `"after:bump": "pnpm install --no-frozen-lockfile && pnpm build"` in `.release-it.json`
+- **Status**: ✅ Done
+- **Fix**: Added `pnpm install --no-frozen-lockfile` to the `after:bump` hook in `.release-it.json`
 
 ### Separate npm publish from binary builds
-- **Status**: Planned
-- **Issue**: npm publish currently depends on `build-binaries` completing, but they're independent
-- **Fix**: Make `publish-npm` depend only on `create-release`, not `build-binaries`
+- **Status**: ✅ Done
+- **Fix**: `publish-npm` now depends only on `create-release`, not `build-binaries`
 
 ## Feature Improvements
 
@@ -87,7 +85,7 @@ This document tracks pending improvements, known issues, and planned features.
 - [ ] Support for expo-sqlite
 - [ ] Support for TypeORM
 - [ ] Reactotron plugin mode (embed as a Reactotron plugin instead of standalone)
-- [ ] Connection status events (onConnect, onDisconnect callbacks)
+- [x] Connection status events (`onConnect`, `onDisconnect` callbacks in `connectInspector`)
 
 ## Performance
 
@@ -98,9 +96,9 @@ This document tracks pending improvements, known issues, and planned features.
 
 ## Security
 
-- [ ] Read-only mode — option to disable update/delete in production-adjacent environments
+- [x] Read-only mode — `readOnly: true` option blocks all write operations
 - [ ] Connection authentication — optional token/password to prevent unauthorized access
-- [ ] SQL injection prevention — parameterized queries for update/delete handlers
+- [x] SQL injection prevention — parameterized queries for update/delete handlers
 
 ## Documentation
 

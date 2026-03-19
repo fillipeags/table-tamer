@@ -260,4 +260,62 @@ describe('connectInspector / disconnectInspector', () => {
 
     disconnectInspector();
   });
+
+  it('calls onConnect callback when connected', async () => {
+    const { connectInspector, disconnectInspector } = await importModule();
+    const database = createMockDatabase();
+    const onConnect = vi.fn();
+
+    connectInspector({ database, onConnect });
+
+    const ws = MockWebSocket.instances[0];
+    ws.simulateOpen();
+
+    expect(onConnect).toHaveBeenCalledOnce();
+
+    disconnectInspector();
+  });
+
+  it('calls onDisconnect callback when disconnected', async () => {
+    const { connectInspector, disconnectInspector } = await importModule();
+    const database = createMockDatabase();
+    const onDisconnect = vi.fn();
+
+    connectInspector({ database, onDisconnect });
+
+    const ws = MockWebSocket.instances[0];
+    ws.simulateOpen();
+    ws.simulateClose();
+
+    expect(onDisconnect).toHaveBeenCalledOnce();
+
+    disconnectInspector();
+  });
+
+  it('blocks write operations in read-only mode', async () => {
+    const { connectInspector, disconnectInspector } = await importModule();
+    const database = createMockDatabase();
+
+    connectInspector({ database, readOnly: true });
+
+    const ws = MockWebSocket.instances[0];
+    ws.simulateOpen();
+    ws.send.mockClear();
+
+    ws.simulateMessage({
+      version: 1,
+      id: 'req-1',
+      timestamp: Date.now(),
+      type: 'request',
+      payload: { action: 'update_record', tableName: 'users', recordId: '1', column: 'name', value: 'test' },
+    });
+
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(ws.send).toHaveBeenCalledOnce();
+    const response = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(response.payload.error).toBe('Write operations are disabled in read-only mode');
+
+    disconnectInspector();
+  });
 });

@@ -11,12 +11,10 @@ export async function handleDeleteRecords(
     return { action: 'delete_records', deletedCount: 0 };
   }
 
-  const idList = recordIds.map((id) => `'${id.replace(/'/g, "''")}'`).join(', ');
-  const sql = `DELETE FROM "${tableName}" WHERE id IN (${idList})`;
+  const placeholders = recordIds.map(() => '?').join(', ');
+  const sql = `DELETE FROM "${tableName}" WHERE id IN (${placeholders})`;
 
-  // database.adapter is a CompatAdapter which wraps unsafeExecute as a Promise
-  // CompatAdapter.unsafeExecute returns a Promise (NOT callback-based)
-  await (database.adapter as any).unsafeExecute({ sqls: [[sql, []]] });
+  await (database.adapter as any).unsafeExecute({ sqls: [[sql, recordIds]] });
 
   return { action: 'delete_records', deletedCount: recordIds.length };
 }

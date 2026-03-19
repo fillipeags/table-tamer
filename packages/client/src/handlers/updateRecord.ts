@@ -1,24 +1,23 @@
 import type { UpdateRecordRequest, UpdateRecordResponse } from '@table-tamer/core';
 import type { Database } from '@nozbe/watermelondb';
 
+function toSqlParam(value: unknown): string | number | null {
+  if (value === null) return null;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  return String(value);
+}
+
 export async function handleUpdateRecord(
   request: UpdateRecordRequest,
   database: Database
 ): Promise<UpdateRecordResponse> {
   const { tableName, recordId, column, value } = request;
 
-  const sqlValue = value === null
-    ? 'NULL'
-    : typeof value === 'number'
-      ? String(value)
-      : typeof value === 'boolean'
-        ? value ? '1' : '0'
-        : `'${String(value).replace(/'/g, "''")}'`;
+  const param = toSqlParam(value);
+  const sql = `UPDATE "${tableName}" SET "${column}" = ? WHERE id = ?`;
 
-  const sql = `UPDATE "${tableName}" SET "${column}" = ${sqlValue} WHERE id = '${recordId.replace(/'/g, "''")}'`;
-
-  // CompatAdapter.unsafeExecute returns a Promise (NOT callback-based)
-  await (database.adapter as any).unsafeExecute({ sqls: [[sql, []]] });
+  await (database.adapter as any).unsafeExecute({ sqls: [[sql, [param, recordId]]] });
 
   return { action: 'update_record', success: true };
 }
