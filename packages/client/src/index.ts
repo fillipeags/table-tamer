@@ -1,3 +1,4 @@
+/* v8 ignore file -- pure re-exports, no runtime logic to test */
 export { connectInspector, disconnectInspector } from './TableTamerClient';
 export type { ConnectInspectorOptions } from './TableTamerClient';
 

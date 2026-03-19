@@ -1,3 +1,4 @@
+/* v8 ignore file -- pure re-exports, no runtime logic to test */
 // Re-export everything from client (which includes core)
 export { connectInspector, disconnectInspector } from '@table-tamer/client';
 export type { ConnectInspectorOptions } from '@table-tamer/client';

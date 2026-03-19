@@ -19,6 +19,7 @@
 <p align="center">
   <a href="https://github.com/fillipeags/table-tamer/actions/workflows/ci.yml"><img src="https://github.com/fillipeags/table-tamer/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/fillipeags/table-tamer/actions/workflows/release.yml"><img src="https://github.com/fillipeags/table-tamer/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
+  <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage" />
   <a href="https://www.npmjs.com/package/@table-tamer/react-native"><img src="https://img.shields.io/npm/v/@table-tamer/react-native.svg" alt="npm version" /></a>
   <a href="https://github.com/fillipeags/table-tamer/releases/latest"><img src="https://img.shields.io/github/v/release/fillipeags/table-tamer" alt="GitHub Release" /></a>
   <a href="https://github.com/fillipeags/table-tamer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fillipeags/table-tamer" alt="License" /></a>
@@ -212,6 +213,26 @@ pnpm dist:mac    # macOS .dmg
 pnpm dist:win    # Windows .exe
 pnpm dist:linux  # Linux .deb / .AppImage
 ```
+
+### Tests
+
+Tests are written with [Vitest](https://vitest.dev/) and cover the `core`, `client`, and `table-tamer` packages.
+
+```bash
+# Run all tests
+pnpm test
+
+# Watch mode
+pnpm test:watch
+
+# Run with coverage report
+pnpm test:coverage
+
+# Run tests for a specific package
+pnpm --filter @table-tamer/core test
+```
+
+Test files live in `src/__tests__/` within each package.
 
 ### Testing with a React Native app
 
