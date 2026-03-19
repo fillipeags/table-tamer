@@ -6,7 +6,7 @@ import { handleGetTableData } from './tableData';
 import { handleGetSchema } from './schemaInfo';
 import { handleExecuteSql } from './sqlExecute';
 
-type Handler = (request: any, database: Database) => Promise<ResponsePayload>;
+type Handler = (request: any, database: Database, platform: string) => Promise<ResponsePayload>;
 
 const handlers: Record<RequestAction, Handler> = {
   get_database_info: handleGetDatabaseInfo,
@@ -18,7 +18,8 @@ const handlers: Record<RequestAction, Handler> = {
 
 export async function handleRequest(
   payload: RequestPayload,
-  database: Database
+  database: Database,
+  platform: string
 ): Promise<ResponsePayload> {
   const handler = handlers[payload.action];
   if (!handler) {
@@ -29,7 +30,7 @@ export async function handleRequest(
   }
 
   try {
-    return await handler(payload, database);
+    return await handler(payload, database, platform);
   } catch (error) {
     return {
       action: payload.action,

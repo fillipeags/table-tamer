@@ -8,12 +8,12 @@ import {
 import type { Database } from '@nozbe/watermelondb';
 import { Connection } from './connection';
 import { handleRequest } from './handlers';
-import { Platform } from 'react-native';
 
 export interface ConnectInspectorOptions {
   database: Database;
   appName?: string;
   appVersion?: string;
+  platform?: string;
   host?: string;
   port?: number;
 }
@@ -23,15 +23,17 @@ let activeClient: TableTamerClient | null = null;
 class TableTamerClient {
   private connection: Connection;
   private database: Database;
+  private platform: string;
   private handshakePayload: HandshakePayload;
 
   constructor(options: ConnectInspectorOptions) {
     this.database = options.database;
+    this.platform = options.platform || 'unknown';
 
     this.handshakePayload = {
       appName: options.appName || 'React Native App',
       appVersion: options.appVersion || '0.0.0',
-      platform: Platform.OS,
+      platform: this.platform,
       dbName: (options.database.adapter as any).dbName || 'unknown',
       schemaVersion: options.database.schema.version,
     };
@@ -57,7 +59,6 @@ class TableTamerClient {
 
   private onConnect(): void {
     console.log('[TableTamer] Connected to desktop app');
-    // Send handshake
     const handshake = createHandshake(this.handshakePayload);
     this.connection.send(handshake);
   }
@@ -70,7 +71,7 @@ class TableTamerClient {
     if (message.type !== 'request') return;
 
     const request = message as RequestMessage;
-    const responsePayload = await handleRequest(request.payload, this.database);
+    const responsePayload = await handleRequest(request.payload, this.database, this.platform);
     const response = createResponse(request.id, responsePayload);
     this.connection.send(response);
   }

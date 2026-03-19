@@ -1,10 +1,10 @@
 import type { DatabaseInfoResponse, GetDatabaseInfoRequest } from '@table-tamer/core';
 import type { Database } from '@nozbe/watermelondb';
-import { Platform } from 'react-native';
 
 export async function handleGetDatabaseInfo(
   _request: GetDatabaseInfoRequest,
-  database: Database
+  database: Database,
+  platform: string
 ): Promise<DatabaseInfoResponse> {
   const tableNames = Object.keys(database.schema.tables);
 
@@ -13,6 +13,6 @@ export async function handleGetDatabaseInfo(
     dbName: (database.adapter as any).dbName || 'unknown',
     schemaVersion: database.schema.version,
     tableCount: tableNames.length,
-    platform: Platform.OS,
+    platform,
   };
 }
