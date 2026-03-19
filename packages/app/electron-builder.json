@@ -32,6 +32,7 @@
   "linux": {
     "target": ["deb", "AppImage"],
     "icon": "build/icons/icon.png",
-    "category": "Development"
+    "category": "Development",
+    "artifactName": "table-tamer-${version}-${arch}.${ext}"
   }
 }
