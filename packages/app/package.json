@@ -2,6 +2,13 @@
   "name": "@table-tamer/app",
   "version": "0.1.0",
   "private": true,
+  "description": "Table Tamer desktop app - WatermelonDB/SQLite inspector",
+  "author": "fillipeags",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fillipeags/table-tamer.git",
+    "directory": "packages/app"
+  },
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "vite build --mode development && electron .",
