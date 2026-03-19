@@ -213,6 +213,27 @@ pnpm dist:win    # Windows .exe
 pnpm dist:linux  # Linux .deb / .AppImage
 ```
 
+### Testing with a React Native app
+
+If you're developing Table Tamer and want to test against an RN app:
+
+```bash
+# 1. In your RN project, link the local client:
+#    Add to package.json devDependencies:
+#    "@table-tamer/client": "file:../table-tamer/packages/client"
+
+# 2. Install
+yarn install --force
+
+# 3. After making changes to table-tamer, rebuild and sync:
+cd table-tamer && pnpm build
+cd ../your-rn-app && yarn install --force
+
+# 4. Reload the RN app on device
+```
+
+For the full development workflow, see the [Integration Guide — Development Workflow](docs/integration-guide.md#development-workflow-contributing-to-table-tamer).
+
 ## Contributing
 
 1. Fork the repository
