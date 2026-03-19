@@ -19,6 +19,6 @@
   },
   "hooks": {
     "before:init": "pnpm lint",
-    "after:bump": "pnpm build"
+    "after:bump": "node scripts/sync-versions.mjs ${version} && pnpm build"
   }
 }

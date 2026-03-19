@@ -1,6 +1,6 @@
 {
   "name": "table-tamer",
-  "version": "0.1.0",
+  "version": "0.2.2",
   "private": false,
   "description": "A real-time WatermelonDB/SQLite inspector for React Native apps",
   "author": "fillipeags <fillipeags@users.noreply.github.com>",
@@ -10,8 +10,19 @@
     "url": "https://github.com/fillipeags/table-tamer.git",
     "directory": "packages/table-tamer"
   },
-  "keywords": ["watermelondb", "sqlite", "inspector", "react-native", "database", "devtools", "flipper"],
-  "files": ["dist", "README.md"],
+  "keywords": [
+    "watermelondb",
+    "sqlite",
+    "inspector",
+    "react-native",
+    "database",
+    "devtools",
+    "flipper"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

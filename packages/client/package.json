@@ -1,6 +1,6 @@
 {
   "name": "@table-tamer/client",
-  "version": "0.1.0",
+  "version": "0.2.2",
   "private": false,
   "description": "Client library for Table Tamer - WatermelonDB inspector for React Native",
   "author": "fillipeags",
@@ -10,8 +10,18 @@
     "url": "https://github.com/fillipeags/table-tamer.git",
     "directory": "packages/client"
   },
-  "keywords": ["watermelondb", "sqlite", "inspector", "react-native", "database", "devtools"],
-  "files": ["dist", "README.md"],
+  "keywords": [
+    "watermelondb",
+    "sqlite",
+    "inspector",
+    "react-native",
+    "database",
+    "devtools"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
