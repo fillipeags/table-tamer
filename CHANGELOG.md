@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/fillipeags/table-tamer/compare/v0.3.0...v0.3.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* use APPLE_TEAM_ID env var for notarization instead of config interpolation ([7295cdc](https://github.com/fillipeags/table-tamer/commit/7295cdc31b6f109a2c6018b3ff051198fc8d163d))
+
 # [0.3.0](https://github.com/fillipeags/table-tamer/compare/v0.2.7...v0.3.0) (2026-03-19)
 
 
