@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/fillipeags/table-tamer/compare/v0.2.4...v0.2.5) (2026-03-19)
+
+
+### Bug Fixes
+
+* regenerate app icons from updated tableTamer.png ([a4efcc3](https://github.com/fillipeags/table-tamer/commit/a4efcc3210ab59822487a3620d295d2bbfd6fc68))
+
 ## [0.2.4](https://github.com/fillipeags/table-tamer/compare/v0.2.3...v0.2.4) (2026-03-19)
 
 

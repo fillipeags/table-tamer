@@ -2,7 +2,7 @@
   "name": "table-tamer",
   "private": true,
   "packageManager": "pnpm@9.15.0",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A real-time WatermelonDB/SQLite inspector for React Native apps",
   "author": "fillipeags",
   "license": "MIT",
