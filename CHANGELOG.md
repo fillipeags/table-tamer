@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/fillipeags/table-tamer/compare/v0.2.5...v0.2.6) (2026-03-19)
+
+
+### Bug Fixes
+
+* rename wrapper package to @table-tamer/react-native ([67ca3ed](https://github.com/fillipeags/table-tamer/commit/67ca3edb4f717f22850e004406efd7a5c939f4ae))
+
 ## [0.2.5](https://github.com/fillipeags/table-tamer/compare/v0.2.4...v0.2.5) (2026-03-19)
 
 
