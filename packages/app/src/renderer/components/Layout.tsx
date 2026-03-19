@@ -62,6 +62,9 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
           <span className="text-[10px] font-medium rounded px-1.5 py-px" style={{ background: 'var(--color-surface-3)', color: 'var(--color-text-muted)' }}>
             v0.1.0
           </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5" style={{ background: 'rgba(0, 93, 255, 0.15)', color: 'var(--color-accent)', border: '1px solid rgba(0, 93, 255, 0.3)' }}>
+            Beta
+          </span>
           <button
             onClick={() => { setSidebarCollapsed(!sidebarCollapsed); setSidebarPeeking(false); }}
             className="flex items-center justify-center rounded p-1 ml-1 transition-colors"
