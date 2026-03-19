@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/fillipeags/table-tamer/compare/v0.2.3...v0.2.4) (2026-03-19)
+
+
+### Bug Fixes
+
+* sync sub-package versions with root and add version sync script ([79943f4](https://github.com/fillipeags/table-tamer/commit/79943f4ff3750bbdb4e5887148d30989c94fd6ac))
+
 ## [0.2.3](https://github.com/fillipeags/table-tamer/compare/v0.2.2...v0.2.3) (2026-03-19)
 
 ## [0.2.2](https://github.com/fillipeags/table-tamer/compare/v0.2.1...v0.2.2) (2026-03-19)

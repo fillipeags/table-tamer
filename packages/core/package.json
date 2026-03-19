@@ -1,6 +1,6 @@
 {
   "name": "@table-tamer/core",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "private": false,
   "description": "Protocol types and utilities for Table Tamer",
   "author": "fillipeags",
