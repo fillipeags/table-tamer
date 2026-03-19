@@ -1,6 +1,6 @@
 {
   "name": "@table-tamer/client",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": false,
   "description": "Client library for Table Tamer - WatermelonDB inspector for React Native",
   "author": "fillipeags",

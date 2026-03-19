@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/fillipeags/table-tamer/compare/v0.3.1...v0.3.2) (2026-03-19)
+
+
+### Bug Fixes
+
+* correct DMG background path and use dynamic app version ([fc753c4](https://github.com/fillipeags/table-tamer/commit/fc753c4e95abbf9e1c47b16cee72e02d0f80a047))
+
 ## [0.3.1](https://github.com/fillipeags/table-tamer/compare/v0.3.0...v0.3.1) (2026-03-19)
 
 
