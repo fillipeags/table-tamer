@@ -1,5 +1,18 @@
 # Changelog
 
+# [0.4.0](https://github.com/fillipeags/table-tamer/compare/v0.3.3...v0.4.0) (2026-03-20)
+
+
+### Features
+
+* auto-detect host from Metro bundler for iOS physical devices ([878a07b](https://github.com/fillipeags/table-tamer/commit/878a07be49d94dc307efcca3b304be7cbd81cd86))
+* inline edit in detail dialog, auto-format JSON, better edit indicator ([38b2c60](https://github.com/fillipeags/table-tamer/commit/38b2c60ee78b3debca393292acdfb189a06645a8))
+* Phase 1 — sidebar redesign with command palette and resizable width ([fda64d9](https://github.com/fillipeags/table-tamer/commit/fda64d95bd07af988701de43a2cdaad496d098ce))
+* Phase 2 — TanStack React Table with sorting, resizing, and row actions ([0abca66](https://github.com/fillipeags/table-tamer/commit/0abca6601567b22822ae5c6b6ed9ac11cf9348b5))
+* Phase 3 — CodeMirror SQL editor with syntax highlighting and autocomplete ([7470f3c](https://github.com/fillipeags/table-tamer/commit/7470f3c63de27d5303cbea7815c6cc7cf18f4299))
+* sidebar Cmd+S toggle, graph layout, sync timestamp, toasts, settings redesign, auto-update UI ([8cef3d0](https://github.com/fillipeags/table-tamer/commit/8cef3d076642ff1dfd451bf88c61d29cbb599049))
+* UI improvements — cell copy, JSON beautify, edit indicators, SQL fix ([0d25269](https://github.com/fillipeags/table-tamer/commit/0d25269f8d453d7e4ffe9d27394894f82256bbd7))
+
 ## [0.3.3](https://github.com/fillipeags/table-tamer/compare/v0.3.2...v0.3.3) (2026-03-20)
 
 
