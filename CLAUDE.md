@@ -53,6 +53,12 @@ pnpm dist:linux                       # Build Linux distributable
 - **`any` type:** Allowed (ESLint rule is off)
 - **Workspace deps:** Use `workspace:*` for internal package references
 
+## Connection
+
+- **Host auto-detection:** The client extracts the Mac's IP from Metro bundler's `scriptURL` via `NativeModules.SourceCode` — works automatically on iOS physical devices
+- **Fallback:** Defaults to `localhost` (simulators, Android with `adb reverse`)
+- **Manual override:** Users can pass `host` option to `connectInspector()` if auto-detection fails
+
 ## Protocol
 
 Message-based communication over WebSocket:
