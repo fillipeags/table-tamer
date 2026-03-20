@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/fillipeags/table-tamer/compare/v0.6.0...v0.6.1) (2026-03-20)
+
+
+### Bug Fixes
+
+* add .next and out to turbo build outputs for Vercel deploy ([11653d0](https://github.com/fillipeags/table-tamer/commit/11653d0e9f037a23ae94650166c4333853e416e7))
+
 # [0.6.0](https://github.com/fillipeags/table-tamer/compare/v0.5.0...v0.6.0) (2026-03-20)
 
 
