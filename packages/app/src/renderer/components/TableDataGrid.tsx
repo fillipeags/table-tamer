@@ -1,4 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  type ColumnDef,
+  type ColumnResizeMode,
+} from '@tanstack/react-table';
 import { useAppStore } from '../stores/appStore';
 import { RecordDetailDialog } from './RecordDetailDialog';
 
@@ -8,6 +15,61 @@ interface TableDataGridProps {
   onUpdateRecord?: (tableName: string, recordId: string, column: string, value: unknown) => Promise<void>;
   onDeleteRecords?: (tableName: string, recordIds: string[]) => Promise<void>;
   tableName?: string | null;
+  onSort?: (column: string, direction: 'ASC' | 'DESC') => void;
+}
+
+type RowData = Record<string, unknown>;
+
+function CellCopyButton({ value }: { value: unknown }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = value === null || value === undefined ? '' : String(value);
+    navigator.clipboard.writeText(text).catch(console.error);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [value]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : 'Copy cell'}
+      className="cell-copy-btn"
+      style={{
+        position: 'absolute',
+        top: '50%',
+        right: '4px',
+        transform: 'translateY(-50%)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '20px',
+        height: '20px',
+        borderRadius: '4px',
+        background: copied ? 'rgba(0, 93, 255, 0.15)' : 'var(--color-surface-3)',
+        border: '1px solid var(--color-border)',
+        color: copied ? 'var(--color-accent)' : 'var(--color-text-muted)',
+        cursor: 'pointer',
+        opacity: copied ? 1 : undefined,
+        transition: 'opacity 150ms ease, color 150ms ease, background 150ms ease',
+        lineHeight: 0,
+        padding: 0,
+        zIndex: 2,
+      }}
+    >
+      {copied ? (
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+          <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+          <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+      )}
+    </button>
+  );
 }
 
 function CellValue({ value }: { value: unknown }) {
@@ -37,7 +99,7 @@ function CellValue({ value }: { value: unknown }) {
   }
 
   const str = String(value);
-  const display = str.length > 120 ? str.slice(0, 120) + '…' : str;
+  const display = str.length > 120 ? str.slice(0, 120) + '\u2026' : str;
 
   return (
     <span title={str.length > 120 ? str : undefined}>
@@ -46,7 +108,25 @@ function CellValue({ value }: { value: unknown }) {
   );
 }
 
-export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, onDeleteRecords, tableName }: TableDataGridProps) {
+function SortIcon({ direction }: { direction: 'ASC' | 'DESC' | null }) {
+  if (direction === 'ASC') {
+    return (
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="inline-block ml-1" style={{ verticalAlign: 'middle' }}>
+        <path d="M5 2L8.5 7H1.5L5 2z" fill="var(--color-accent)" />
+      </svg>
+    );
+  }
+  if (direction === 'DESC') {
+    return (
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="inline-block ml-1" style={{ verticalAlign: 'middle' }}>
+        <path d="M5 8L1.5 3H8.5L5 8z" fill="var(--color-accent)" />
+      </svg>
+    );
+  }
+  return null;
+}
+
+export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, onDeleteRecords, tableName, onSort }: TableDataGridProps) {
   const tableData = useAppStore((s) => s.tableData);
   const loading = useAppStore((s) => s.loading['get_table_data']);
 
@@ -63,51 +143,23 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
   } | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC' | null>(null);
+  const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
+  const [copiedRowId, setCopiedRowId] = useState<string | null>(null);
 
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  if (!tableData) return null;
-
-  const totalPages = Math.ceil(tableData.totalCount / tableData.pageSize);
-  const startRow = (tableData.page - 1) * tableData.pageSize + 1;
-  const endRow = Math.min(tableData.page * tableData.pageSize, tableData.totalCount);
-
-  const allRowIds = tableData.rows.map((row) => String(row['id'] ?? ''));
-  const allSelected = allRowIds.length > 0 && allRowIds.every((id) => selectedRows.has(id));
-  const someSelected = allRowIds.some((id) => selectedRows.has(id));
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      const next = new Set(selectedRows);
-      allRowIds.forEach((id) => next.delete(id));
-      setSelectedRows(next);
-    } else {
-      const next = new Set(selectedRows);
-      allRowIds.forEach((id) => { if (id) next.add(id); });
-      setSelectedRows(next);
-    }
-  };
-
-  const handleSelectRow = (recordId: string) => {
-    if (!recordId) return;
-    const next = new Set(selectedRows);
-    if (next.has(recordId)) {
-      next.delete(recordId);
-    } else {
-      next.add(recordId);
-    }
-    setSelectedRows(next);
-  };
-
-  const handleCellDoubleClick = (rowIndex: number, column: string, currentValue: unknown) => {
+  // Editing handlers
+  const handleCellDoubleClick = useCallback((rowIndex: number, column: string, currentValue: unknown) => {
     if (!onUpdateRecord || !tableName) return;
     if (column === 'id') return;
     setEditingCell({ rowIndex, column });
     setEditValue(currentValue === null || currentValue === undefined ? 'NULL' : String(currentValue));
     setTimeout(() => editInputRef.current?.select(), 0);
-  };
+  }, [onUpdateRecord, tableName]);
 
-  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, column: string) => {
+  const handleEditKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, column: string) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       commitEdit(rowIndex, column);
@@ -115,16 +167,10 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
       setEditingCell(null);
       setEditValue('');
     }
-  };
+  }, [editValue, tableName, tableData]);
 
-  const handleEditBlur = (rowIndex: number, column: string) => {
-    if (editingCell?.rowIndex === rowIndex && editingCell?.column === column) {
-      commitEdit(rowIndex, column);
-    }
-  };
-
-  const commitEdit = (rowIndex: number, column: string) => {
-    if (!tableName) return;
+  const commitEdit = useCallback((rowIndex: number, column: string) => {
+    if (!tableName || !tableData) return;
     const row = tableData.rows[rowIndex];
     if (!row) return;
     const recordId = String(row['id'] ?? '');
@@ -141,10 +187,155 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
     setPendingEdit({ tableName, recordId, column, oldValue, newValue });
     setShowConfirmDialog(true);
     setEditingCell(null);
-  };
+  }, [editValue, tableName, tableData]);
 
-  // Column count: checkbox + view + row# + data columns
-  const totalColSpan = tableData.columns.length + 3;
+  const handleEditBlur = useCallback((rowIndex: number, column: string) => {
+    if (editingCell?.rowIndex === rowIndex && editingCell?.column === column) {
+      commitEdit(rowIndex, column);
+    }
+  }, [editingCell, commitEdit]);
+
+  // Sort handler
+  const handleHeaderClick = useCallback((column: string) => {
+    if (!onSort) return;
+    let newDir: 'ASC' | 'DESC' | null;
+    if (sortColumn !== column) {
+      newDir = 'ASC';
+    } else if (sortDirection === 'ASC') {
+      newDir = 'DESC';
+    } else if (sortDirection === 'DESC') {
+      newDir = null;
+    } else {
+      newDir = 'ASC';
+    }
+
+    setSortColumn(newDir ? column : null);
+    setSortDirection(newDir);
+    if (newDir) {
+      onSort(column, newDir);
+    } else {
+      // Reset sort - call with empty to let parent handle
+      onSort('', 'ASC');
+    }
+  }, [onSort, sortColumn, sortDirection]);
+
+  // Selection handlers
+  const allRowIds = useMemo(() => tableData?.rows.map((row) => String(row['id'] ?? '')) ?? [], [tableData]);
+  const allSelected = allRowIds.length > 0 && allRowIds.every((id) => selectedRows.has(id));
+  const someSelected = allRowIds.some((id) => selectedRows.has(id));
+
+  const handleSelectAll = useCallback(() => {
+    if (allSelected) {
+      const next = new Set(selectedRows);
+      allRowIds.forEach((id) => next.delete(id));
+      setSelectedRows(next);
+    } else {
+      const next = new Set(selectedRows);
+      allRowIds.forEach((id) => { if (id) next.add(id); });
+      setSelectedRows(next);
+    }
+  }, [allSelected, allRowIds, selectedRows]);
+
+  const handleSelectRow = useCallback((recordId: string) => {
+    if (!recordId) return;
+    const next = new Set(selectedRows);
+    if (next.has(recordId)) {
+      next.delete(recordId);
+    } else {
+      next.add(recordId);
+    }
+    setSelectedRows(next);
+  }, [selectedRows]);
+
+  // Copy row as JSON
+  const handleCopyRow = useCallback((row: RowData, recordId: string) => {
+    const json = JSON.stringify(row, null, 2);
+    navigator.clipboard.writeText(json).catch(console.error);
+    setCopiedRowId(recordId);
+    setTimeout(() => setCopiedRowId(null), 1500);
+  }, []);
+
+  // Delete single row
+  const handleDeleteSingleRow = useCallback((recordId: string) => {
+    if (!recordId || !tableName || !onDeleteRecords) return;
+    setSelectedRows(new Set([recordId]));
+    setShowDeleteConfirm(true);
+  }, [tableName, onDeleteRecords]);
+
+  // Build TanStack columns
+  const columns = useMemo<ColumnDef<RowData, unknown>[]>(() => {
+    if (!tableData) return [];
+
+    return tableData.columns.map((col) => ({
+      id: col,
+      accessorKey: col,
+      header: col,
+      size: 150,
+      minSize: 60,
+      maxSize: 600,
+      cell: ({ row, getValue }) => {
+        const rowIndex = row.index;
+        const isEditing = editingCell?.rowIndex === rowIndex && editingCell?.column === col;
+        const canEdit = onUpdateRecord && tableName && col !== 'id';
+
+        if (isEditing) {
+          return (
+            <input
+              ref={editInputRef}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => handleEditKeyDown(e, rowIndex, col)}
+              onBlur={() => handleEditBlur(rowIndex, col)}
+              autoFocus
+              className="w-full h-full font-mono text-xs px-3 py-1.5"
+              style={{
+                background: 'rgba(0, 93, 255, 0.08)',
+                border: '1px solid rgba(0, 93, 255, 0.5)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+                minWidth: '80px',
+              }}
+            />
+          );
+        }
+
+        return (
+          <div
+            className={`cell-container px-3 py-1.5 font-mono whitespace-nowrap overflow-hidden text-ellipsis${canEdit ? ' editable-cell' : ''}`}
+            style={{
+              color: 'var(--color-text-primary)',
+              cursor: canEdit ? 'text' : 'default',
+              position: 'relative',
+            }}
+            onDoubleClick={() => canEdit && handleCellDoubleClick(rowIndex, col, getValue())}
+            title={canEdit ? 'Double-click to edit' : undefined}
+          >
+            <CellValue value={getValue()} />
+            <CellCopyButton value={getValue()} />
+          </div>
+        );
+      },
+    }));
+  }, [tableData, editingCell, editValue, onUpdateRecord, tableName, handleCellDoubleClick, handleEditKeyDown, handleEditBlur]);
+
+  const data = useMemo(() => tableData?.rows ?? [], [tableData]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode,
+    enableColumnResizing: true,
+  });
+
+  if (!tableData) return null;
+
+  const totalPages = Math.ceil(tableData.totalCount / tableData.pageSize);
+  const startRow = (tableData.page - 1) * tableData.pageSize + 1;
+  const endRow = Math.min(tableData.page * tableData.pageSize, tableData.totalCount);
+
+  // Total colSpan for loading/empty states: checkbox + view + row# + data columns + actions
+  const totalColSpan = tableData.columns.length + 4;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -155,36 +346,131 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
       >
         <table
           className="w-full border-collapse text-xs"
-          style={{ minWidth: 'max-content' }}
+          style={{
+            minWidth: 'max-content',
+            width: table.getCenterTotalSize(),
+          }}
         >
           <thead>
-            <tr style={{ background: 'var(--color-surface-2)' }}>
-              {/* Checkbox column */}
-              <th className="sticky top-0 z-10 text-center py-2 font-medium select-none" style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border-subtle)', width: '28px', minWidth: '28px' }}>
-                <input type="checkbox" checked={allSelected} ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }} onChange={handleSelectAll} className="cursor-pointer" style={{ accentColor: 'var(--color-accent)', width: '13px', height: '13px' }} title="Select all" />
-              </th>
-              {/* View detail column */}
-              <th className="sticky top-0 z-10 text-center py-2 font-medium select-none" style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border-subtle)', width: '28px', minWidth: '28px' }}>
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ margin: '0 auto', color: 'var(--color-text-muted)' }}><path d="M8 4C5.07 4 2.52 5.95 1.5 8.5c1.02 2.55 3.57 4.5 6.5 4.5s5.48-1.95 6.5-4.5C13.48 5.95 10.93 4 8 4z" fill="currentColor" fillOpacity="0.3" /></svg>
-              </th>
-              {/* Row number column */}
-              <th className="sticky top-0 z-10 text-right px-2 py-2 font-medium select-none" style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)', color: 'var(--color-text-muted)', width: '36px', minWidth: '36px', fontSize: '10px' }}>#</th>
-              {tableData.columns.map((col) => (
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} style={{ background: 'var(--color-surface-2)' }}>
+                {/* Checkbox column */}
                 <th
-                  key={col}
-                  className="sticky top-0 z-10 text-left px-3 py-2 whitespace-nowrap font-semibold"
+                  className="sticky top-0 z-10 text-center py-2 font-medium select-none"
                   style={{
                     background: 'var(--color-surface-2)',
                     borderBottom: '1px solid var(--color-border)',
                     borderRight: '1px solid var(--color-border-subtle)',
-                    color: 'var(--color-text-secondary)',
-                    letterSpacing: '0.01em',
+                    width: '28px',
+                    minWidth: '28px',
                   }}
                 >
-                  {col}
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                    onChange={handleSelectAll}
+                    className="cursor-pointer"
+                    style={{ accentColor: 'var(--color-accent)', width: '13px', height: '13px' }}
+                    title="Select all"
+                  />
                 </th>
-              ))}
-            </tr>
+                {/* View detail column */}
+                <th
+                  className="sticky top-0 z-10 text-center py-2 font-medium select-none"
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    borderBottom: '1px solid var(--color-border)',
+                    borderRight: '1px solid var(--color-border-subtle)',
+                    width: '28px',
+                    minWidth: '28px',
+                  }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ margin: '0 auto', color: 'var(--color-text-muted)' }}>
+                    <path d="M8 4C5.07 4 2.52 5.95 1.5 8.5c1.02 2.55 3.57 4.5 6.5 4.5s5.48-1.95 6.5-4.5C13.48 5.95 10.93 4 8 4z" fill="currentColor" fillOpacity="0.3" />
+                  </svg>
+                </th>
+                {/* Row number column */}
+                <th
+                  className="sticky top-0 z-10 text-right px-2 py-2 font-medium select-none"
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    borderBottom: '1px solid var(--color-border)',
+                    borderRight: '1px solid var(--color-border)',
+                    color: 'var(--color-text-muted)',
+                    width: '36px',
+                    minWidth: '36px',
+                    fontSize: '10px',
+                  }}
+                >
+                  #
+                </th>
+                {/* Data columns */}
+                {headerGroup.headers.map((header) => {
+                  const colId = header.column.id;
+                  const isSorted = sortColumn === colId;
+                  return (
+                    <th
+                      key={header.id}
+                      className="sticky top-0 z-10 text-left py-2 whitespace-nowrap font-semibold select-none"
+                      style={{
+                        background: 'var(--color-surface-2)',
+                        borderBottom: '1px solid var(--color-border)',
+                        borderRight: '1px solid var(--color-border-subtle)',
+                        color: isSorted ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                        letterSpacing: '0.01em',
+                        width: header.getSize(),
+                        position: 'relative',
+                        cursor: onSort ? 'pointer' : 'default',
+                        paddingLeft: '12px',
+                        paddingRight: '12px',
+                      }}
+                      onClick={() => handleHeaderClick(colId)}
+                    >
+                      <span className="flex items-center">
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <SortIcon direction={isSorted ? sortDirection : null} />
+                        {!isSorted && onSort && (
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 10 10"
+                            fill="none"
+                            className="inline-block ml-1 opacity-0 group-hover:opacity-30"
+                            style={{ verticalAlign: 'middle', opacity: 0.15 }}
+                          >
+                            <path d="M5 2L8 5H2L5 2z" fill="currentColor" />
+                            <path d="M5 8L2 5H8L5 8z" fill="currentColor" />
+                          </svg>
+                        )}
+                      </span>
+                      {/* Resize handle */}
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`absolute right-0 top-0 h-full w-[4px] cursor-col-resize select-none touch-none ${!header.column.getIsResizing() ? 'hover-resize-handle' : ''}`}
+                        style={{
+                          background: header.column.getIsResizing()
+                            ? 'var(--color-accent)'
+                            : 'transparent',
+                        }}
+                      />
+                    </th>
+                  );
+                })}
+                {/* Row actions column header - now minimal width */}
+                <th
+                  className="sticky top-0 z-10 py-2 font-medium select-none"
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    borderBottom: '1px solid var(--color-border)',
+                    width: '16px',
+                    minWidth: '16px',
+                  }}
+                />
+              </tr>
+            ))}
           </thead>
           <tbody>
             {loading ? (
@@ -214,85 +500,213 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                 </td>
               </tr>
             ) : (
-              tableData.rows.map((row, i) => {
+              table.getRowModel().rows.map((row) => {
+                const i = row.index;
                 const isEven = i % 2 === 0;
                 const rowNumber = startRow + i;
-                const recordId = String(row['id'] ?? '');
+                const recordId = String(row.original['id'] ?? '');
                 const isRowSelected = recordId ? selectedRows.has(recordId) : false;
+                const isRowCopied = copiedRowId === recordId;
+
                 return (
                   <tr
-                    key={i}
-                    className="group"
+                    key={row.id}
+                    className={`group ${!isRowSelected ? 'hover-row-accent' : ''}`}
                     style={{
                       background: isRowSelected
                         ? 'rgba(0, 93, 255, 0.07)'
                         : isEven ? 'transparent' : 'rgba(255,255,255,0.015)',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isRowSelected) {
-                        (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0, 93, 255, 0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isRowSelected) {
-                        (e.currentTarget as HTMLTableRowElement).style.background = isEven ? 'transparent' : 'rgba(255,255,255,0.015)';
-                      }
+                      position: 'relative',
                     }}
                   >
                     {/* Checkbox */}
-                    <td className="text-center py-1 select-none" style={{ borderBottom: '1px solid var(--color-border-subtle)', borderRight: '1px solid var(--color-border-subtle)', width: '28px' }}>
-                      <input type="checkbox" checked={isRowSelected} onChange={() => handleSelectRow(recordId)} className="cursor-pointer" style={{ accentColor: 'var(--color-accent)', width: '13px', height: '13px' }} />
+                    <td
+                      className="text-center py-1 select-none"
+                      style={{
+                        borderBottom: '1px solid var(--color-border-subtle)',
+                        borderRight: '1px solid var(--color-border-subtle)',
+                        width: '28px',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isRowSelected}
+                        onChange={() => handleSelectRow(recordId)}
+                        className="cursor-pointer"
+                        style={{ accentColor: 'var(--color-accent)', width: '13px', height: '13px' }}
+                      />
                     </td>
                     {/* View detail */}
-                    <td className="text-center py-1 select-none" style={{ borderBottom: '1px solid var(--color-border-subtle)', borderRight: '1px solid var(--color-border-subtle)', width: '28px' }}>
-                      <button onClick={() => setDetailRecord({ record: row, index: i })} title="View details" style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0, padding: 0 }}>
-                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 4C5.07 4 2.52 5.95 1.5 8.5c1.02 2.55 3.57 4.5 6.5 4.5s5.48-1.95 6.5-4.5C13.48 5.95 10.93 4 8 4zm0 7.5c-1.52 0-2.75-1.23-2.75-2.75S6.48 6 8 6s2.75 1.23 2.75 2.75S9.52 11.5 8 11.5zM8 7.25c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25z" fill="currentColor" /></svg>
+                    <td
+                      className="text-center py-1 select-none"
+                      style={{
+                        borderBottom: '1px solid var(--color-border-subtle)',
+                        borderRight: '1px solid var(--color-border-subtle)',
+                        width: '28px',
+                      }}
+                    >
+                      <button
+                        onClick={() => setDetailRecord({ record: row.original, index: i })}
+                        title="View details"
+                        style={{ color: 'var(--color-accent)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0, padding: 0 }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 4C5.07 4 2.52 5.95 1.5 8.5c1.02 2.55 3.57 4.5 6.5 4.5s5.48-1.95 6.5-4.5C13.48 5.95 10.93 4 8 4zm0 7.5c-1.52 0-2.75-1.23-2.75-2.75S6.48 6 8 6s2.75 1.23 2.75 2.75S9.52 11.5 8 11.5zM8 7.25c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25z" fill="currentColor" />
+                        </svg>
                       </button>
                     </td>
                     {/* Row number */}
-                    <td className="text-right px-2 py-1 tabular-nums select-none" style={{ borderBottom: '1px solid var(--color-border-subtle)', borderRight: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '10px', width: '36px' }}>
+                    <td
+                      className="text-right px-2 py-1 tabular-nums select-none"
+                      style={{
+                        borderBottom: '1px solid var(--color-border-subtle)',
+                        borderRight: '1px solid var(--color-border)',
+                        color: 'var(--color-text-muted)',
+                        fontSize: '10px',
+                        width: '36px',
+                      }}
+                    >
                       {rowNumber}
                     </td>
-                    {tableData.columns.map((col) => {
-                      const isEditing = editingCell?.rowIndex === i && editingCell?.column === col;
-                      const canEdit = onUpdateRecord && tableName && col !== 'id';
+                    {/* Data cells */}
+                    {row.getVisibleCells().map((cell) => {
+                      const isEditing = editingCell?.rowIndex === i && editingCell?.column === cell.column.id;
                       return (
                         <td
-                          key={col}
-                          className="px-3 py-1.5 font-mono whitespace-nowrap max-w-xs overflow-hidden text-ellipsis"
+                          key={cell.id}
                           style={{
-                            color: 'var(--color-text-primary)',
                             borderBottom: '1px solid var(--color-border-subtle)',
                             borderRight: '1px solid var(--color-border-subtle)',
-                            cursor: canEdit ? 'text' : 'default',
                             padding: isEditing ? '0' : undefined,
+                            width: cell.column.getSize(),
+                            maxWidth: cell.column.getSize(),
+                            overflow: 'hidden',
                           }}
-                          onDoubleClick={() => canEdit && handleCellDoubleClick(i, col, row[col])}
-                          title={canEdit && !isEditing ? 'Double-click to edit' : undefined}
                         >
-                          {isEditing ? (
-                            <input
-                              ref={editInputRef}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onKeyDown={(e) => handleEditKeyDown(e, i, col)}
-                              onBlur={() => handleEditBlur(i, col)}
-                              autoFocus
-                              className="w-full h-full font-mono text-xs px-3 py-1.5"
-                              style={{
-                                background: 'rgba(0, 93, 255, 0.08)',
-                                border: '1px solid rgba(0, 93, 255, 0.5)',
-                                color: 'var(--color-text-primary)',
-                                outline: 'none',
-                                minWidth: '80px',
-                              }}
-                            />
-                          ) : (
-                            <CellValue value={row[col]} />
-                          )}
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       );
                     })}
+                    {/* Row actions - floating pill on hover */}
+                    <td
+                      className="py-1 select-none"
+                      style={{
+                        borderBottom: '1px solid var(--color-border-subtle)',
+                        width: '16px',
+                        minWidth: '16px',
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        className="row-actions-pill opacity-0 group-hover:opacity-100"
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          padding: '3px 6px',
+                          borderRadius: '20px',
+                          background: 'rgba(26, 29, 40, 0.85)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          border: '1px solid var(--color-border)',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                          transition: 'opacity 150ms ease',
+                          zIndex: 5,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {/* Copy row as JSON */}
+                        <button
+                          onClick={() => handleCopyRow(row.original, recordId)}
+                          title={isRowCopied ? 'Copied!' : 'Copy row JSON'}
+                          className="hover-text-primary"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '4px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            lineHeight: 0,
+                            color: isRowCopied ? 'var(--color-accent)' : undefined,
+                            transition: 'background 150ms ease',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+                        >
+                          {isRowCopied ? (
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                              <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.3" />
+                            </svg>
+                          )}
+                        </button>
+                        {/* Edit (open detail) */}
+                        <button
+                          onClick={() => setDetailRecord({ record: row.original, index: i })}
+                          title="View / edit record"
+                          className="hover-text-accent"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '4px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            lineHeight: 0,
+                            transition: 'background 150ms ease',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                            <path d="M9.5 4.5l2 2" stroke="currentColor" strokeWidth="1.3" />
+                          </svg>
+                        </button>
+                        {/* Delete */}
+                        {onDeleteRecords && tableName && (
+                          <button
+                            onClick={() => handleDeleteSingleRow(recordId)}
+                            title="Delete record"
+                            className="hover-text-danger"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '4px',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              lineHeight: 0,
+                              transition: 'background 150ms ease',
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <path d="M3 4h10l-1 10H4L3 4zM6 2h4M2 4h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })
@@ -303,12 +717,19 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
 
       {/* Selection action bar */}
       {selectedRows.size > 0 && (
-        <div className="flex items-center justify-between px-4 py-2 shrink-0" style={{ background: 'rgba(0,93,255,0.08)', borderTop: '1px solid rgba(0,93,255,0.2)' }}>
+        <div
+          className="flex items-center justify-between px-4 py-2 shrink-0"
+          style={{ background: 'rgba(0,93,255,0.08)', borderTop: '1px solid rgba(0,93,255,0.2)' }}
+        >
           <span className="text-xs font-medium" style={{ color: 'var(--color-accent)' }}>
             {selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setSelectedRows(new Set())} className="text-xs px-2 py-1 rounded" style={{ color: 'var(--color-text-secondary)' }}>
+            <button
+              onClick={() => setSelectedRows(new Set())}
+              className="text-xs px-2 py-1 rounded"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
               Clear
             </button>
             <button
@@ -319,7 +740,9 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
               className="flex items-center gap-1 text-xs px-3 py-1 rounded font-medium"
               style={{ background: 'var(--color-danger)', color: 'white' }}
             >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 4h10l-1 10H4L3 4zM6 2h4M2 4h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                <path d="M3 4h10l-1 10H4L3 4zM6 2h4M2 4h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
               Delete {selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''}
             </button>
           </div>
@@ -340,7 +763,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
         >
           {tableData.totalCount === 0
             ? 'No records'
-            : `Showing ${startRow.toLocaleString()}–${endRow.toLocaleString()} of ${tableData.totalCount.toLocaleString()} records`}
+            : `Showing ${startRow.toLocaleString()}\u2013${endRow.toLocaleString()} of ${tableData.totalCount.toLocaleString()} records`}
         </span>
 
         <div className="flex items-center gap-3">
@@ -415,6 +838,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
           columns={tableData.columns}
           tableName={tableName || ''}
           onClose={() => setDetailRecord(null)}
+          onUpdateRecord={onUpdateRecord}
         />
       )}
 
@@ -440,7 +864,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
               <div>
                 <span style={{ color: 'var(--color-text-muted)' }}>SET </span>
                 <span style={{ color: 'var(--color-danger)' }}>{String(pendingEdit.oldValue)}</span>
-                <span style={{ color: 'var(--color-text-muted)' }}> → </span>
+                <span style={{ color: 'var(--color-text-muted)' }}> {'\u2192'} </span>
                 <span style={{ color: 'var(--color-accent)' }}>{String(pendingEdit.newValue)}</span>
               </div>
               <div style={{ color: 'var(--color-text-muted)' }}>WHERE id = '{pendingEdit.recordId}'</div>
@@ -488,7 +912,13 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
               You are about to permanently delete <strong>{selectedRows.size}</strong> record{selectedRows.size !== 1 ? 's' : ''} from <strong>{tableName}</strong>. This cannot be undone.
             </p>
             <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1.5 rounded text-xs font-medium" style={{ background: 'var(--color-surface-3)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>Cancel</button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 rounded text-xs font-medium"
+                style={{ background: 'var(--color-surface-3)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+              >
+                Cancel
+              </button>
               <button
                 onClick={async () => {
                   if (tableName && onDeleteRecords) {
@@ -499,7 +929,9 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                 }}
                 className="px-3 py-1.5 rounded text-xs font-medium"
                 style={{ background: 'var(--color-danger)', color: 'white' }}
-              >Delete</button>
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

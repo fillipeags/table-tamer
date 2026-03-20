@@ -105,13 +105,26 @@ if (__DEV__) {
 }
 ```
 
-### 4. For physical Android devices
+### 4. Platform-specific setup
 
-Forward the port via ADB:
+**iOS (physical devices):** Works automatically — the client detects your Mac's IP from the Metro bundler. No extra configuration needed.
+
+If auto-detection doesn't work, you can set the host manually:
+
+```typescript
+connectInspector({
+  database: wmdb,
+  host: '192.168.0.100', // your Mac's local IP
+});
+```
+
+**Android (physical devices):** Forward the port via ADB:
 
 ```bash
 adb reverse tcp:8765 tcp:8765
 ```
+
+**Simulators/Emulators:** Work out of the box with `localhost`.
 
 ### 5. Launch Table Tamer desktop app
 
@@ -177,7 +190,7 @@ interface ConnectInspectorOptions {
   appName?: string;        // App name shown in desktop app
   appVersion?: string;     // App version shown in desktop app
   platform?: string;       // 'ios' | 'android'
-  host?: string;           // WebSocket host (default: 'localhost')
+  host?: string;           // WebSocket host (auto-detected from Metro bundler)
   port?: number;           // WebSocket port (default: 8765)
   readOnly?: boolean;      // Block all write operations (default: false)
   onConnect?: () => void;  // Called when connection is established
@@ -239,24 +252,35 @@ Test files live in `src/__tests__/` within each package.
 
 ### Testing with a React Native app
 
-If you're developing Table Tamer and want to test against an RN app:
+Use [yalc](https://github.com/wclr/yalc) to link local packages to your RN project:
 
 ```bash
-# 1. In your RN project, link the local client:
-#    Add to package.json devDependencies:
-#    "@table-tamer/client": "file:../table-tamer/packages/client"
+# 1. Install yalc globally
+npm install -g yalc
 
-# 2. Install
-yarn install --force
+# 2. In the table-tamer repo, build and publish all packages to the local store
+pnpm build
+cd packages/core && yalc publish && cd ../..
+cd packages/client && yalc publish && cd ../..
+cd packages/table-tamer && yalc publish && cd ../..
 
-# 3. After making changes to table-tamer, rebuild and sync:
-cd table-tamer && pnpm build
-cd ../your-rn-app && yarn install --force
+# 3. In your RN project, add the local packages
+cd your-rn-app
+yalc add @table-tamer/core
+yalc add @table-tamer/client
+yalc add @table-tamer/react-native
 
-# 4. Reload the RN app on device
+# 4. After making changes to table-tamer, rebuild and push updates
+cd table-tamer
+pnpm build
+cd packages/core && yalc publish && cd ../..
+cd packages/client && yalc publish && cd ../..
+cd packages/table-tamer && yalc publish --push && cd ../..
+# --push automatically updates all linked projects
+
+# 5. Rebuild the RN app (native rebuild required since it's in node_modules)
+cd your-rn-app && yarn ios  # or yarn android
 ```
-
-For the full development workflow, see the [Integration Guide — Development Workflow](docs/integration-guide.md#development-workflow-contributing-to-table-tamer).
 
 ## Contributing
 

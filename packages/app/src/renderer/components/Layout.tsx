@@ -1,6 +1,10 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useSettingsStore } from '../stores/settingsStore';
 
 declare const __APP_VERSION__: string;
+
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 400;
 
 interface LayoutProps {
   sidebar: React.ReactNode;
@@ -9,9 +13,58 @@ interface LayoutProps {
 }
 
 export function Layout({ sidebar, main, header }: LayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(settings.sidebarCollapsed);
   const [sidebarPeeking, setSidebarPeeking] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(settings.sidebarWidth);
+  const [isResizing, setIsResizing] = useState(false);
   const peekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist collapsed state
+  const toggleCollapsed = useCallback(() => {
+    const next = !sidebarCollapsed;
+    setSidebarCollapsed(next);
+    setSidebarPeeking(false);
+    updateSetting('sidebarCollapsed', next);
+  }, [sidebarCollapsed, updateSetting]);
+
+  // Cmd+S keyboard shortcut to toggle sidebar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        toggleCollapsed();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleCollapsed]);
+
+  // Resize handling
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth + (ev.clientX - startX)));
+      setSidebarWidth(newWidth);
+    };
+
+    const onMouseUpWithWidth = (ev: MouseEvent) => {
+      setIsResizing(false);
+      const finalWidth = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth + (ev.clientX - startX)));
+      updateSetting('sidebarWidth', finalWidth);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUpWithWidth);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUpWithWidth);
+  }, [sidebarWidth, updateSetting]);
 
   const handleEdgeEnter = useCallback(() => {
     if (!sidebarCollapsed) return;
@@ -33,6 +86,10 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
 
   return (
     <div className="flex flex-col h-screen" style={{ background: 'var(--color-surface-0)', color: 'var(--color-text-primary)' }}>
+      {/* Global resize cursor overlay */}
+      {isResizing && (
+        <div className="fixed inset-0 z-[9999]" style={{ cursor: 'col-resize' }} />
+      )}
       <header
         className="flex items-center justify-between pl-20 pr-3 shrink-0 select-none"
         style={{
@@ -68,12 +125,9 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
             Beta
           </span>
           <button
-            onClick={() => { setSidebarCollapsed(!sidebarCollapsed); setSidebarPeeking(false); }}
-            className="flex items-center justify-center rounded p-1 ml-1 transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
+            onClick={toggleCollapsed}
+            className="flex items-center justify-center rounded p-1 ml-1 hover-text-primary"
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" fill="none" />
@@ -83,6 +137,30 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
               {!sidebarCollapsed && <line x1="2" y1="11" x2="4" y2="11" stroke="currentColor" strokeWidth="1" />}
             </svg>
           </button>
+          {/* Cmd+S hint */}
+          <span
+            className="text-[10px] rounded px-1.5 py-0.5 select-none"
+            style={{
+              background: 'var(--color-surface-3)',
+              color: 'var(--color-text-muted)',
+              border: '1px solid var(--color-border-subtle)',
+            }}
+            title="Toggle sidebar"
+          >
+            {'\u2318'}S
+          </span>
+          {/* Cmd+K hint */}
+          <span
+            className="text-[10px] rounded px-1.5 py-0.5 select-none"
+            style={{
+              background: 'var(--color-surface-3)',
+              color: 'var(--color-text-muted)',
+              border: '1px solid var(--color-border-subtle)',
+            }}
+            title="Search tables"
+          >
+            {'\u2318'}K
+          </span>
         </div>
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           {header}
@@ -111,7 +189,7 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
             <div
               className="absolute left-0 top-0 bottom-0 z-30 flex flex-col overflow-hidden"
               style={{
-                width: '280px',
+                width: `${sidebarWidth}px`,
                 background: 'var(--color-surface-1)',
                 borderRight: '1px solid var(--color-border)',
                 boxShadow: '4px 0 24px rgba(0,0,0,0.4)',
@@ -127,14 +205,34 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
         {/* Normal sidebar */}
         {!sidebarCollapsed && (
           <aside
-            className="flex flex-col shrink-0 overflow-hidden"
+            className="flex flex-col shrink-0 overflow-hidden relative"
             style={{
-              width: '260px',
+              width: `${sidebarWidth}px`,
               background: 'var(--color-surface-1)',
               borderRight: '1px solid var(--color-border)',
             }}
           >
             {sidebar}
+            {/* Resize handle */}
+            <div
+              className="absolute top-0 bottom-0 right-0 z-10"
+              style={{
+                width: '5px',
+                cursor: 'col-resize',
+                transform: 'translateX(50%)',
+              }}
+              onMouseDown={handleResizeStart}
+            >
+              <div
+                className="h-full transition-opacity"
+                style={{
+                  width: '1px',
+                  marginLeft: '2px',
+                  background: isResizing ? 'var(--color-accent)' : 'transparent',
+                  opacity: isResizing ? 1 : 0,
+                }}
+              />
+            </div>
           </aside>
         )}
 

@@ -114,14 +114,8 @@ export function SavedQueries({ onRunQuery, currentSql, externalShowSave, onExter
           {queries.map((q) => (
             <div
               key={q.id}
-              className="flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer hover-row-highlight"
               style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-              }}
             >
               <div className="flex-1 min-w-0" onClick={() => onRunQuery(q.sql)}>
                 <div className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>

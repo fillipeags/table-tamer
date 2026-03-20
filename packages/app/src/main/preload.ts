@@ -18,4 +18,21 @@ contextBridge.exposeInMainWorld('tableTamer', {
   },
   getServerStatus: () => ipcRenderer.invoke('ws:get-status'),
   getClients: () => ipcRenderer.invoke('ws:get-clients'),
+
+  // Auto-update events
+  onUpdateAvailable: (callback: (_event: any, version: string) => void) => {
+    ipcRenderer.on('update:available', callback);
+    return () => ipcRenderer.removeListener('update:available', callback);
+  },
+  onUpdateDownloadProgress: (callback: (_event: any, percent: number) => void) => {
+    ipcRenderer.on('update:download-progress', callback);
+    return () => ipcRenderer.removeListener('update:download-progress', callback);
+  },
+  onUpdateDownloaded: (callback: (_event: any, version: string) => void) => {
+    ipcRenderer.on('update:downloaded', callback);
+    return () => ipcRenderer.removeListener('update:downloaded', callback);
+  },
+  installUpdate: () => {
+    ipcRenderer.send('update:install');
+  },
 });

@@ -1,4 +1,5 @@
 import { RECONNECT_INTERVAL_MS, DEFAULT_PORT, type Message } from '@table-tamer/core';
+import { getDevServerHost } from './getDevServerHost';
 
 export interface ConnectionOptions {
   host?: string;
@@ -17,7 +18,7 @@ export class Connection {
   constructor(options: ConnectionOptions) {
     this.options = {
       ...options,
-      host: options.host || 'localhost',
+      host: options.host || getDevServerHost(),
       port: options.port || DEFAULT_PORT,
     };
   }

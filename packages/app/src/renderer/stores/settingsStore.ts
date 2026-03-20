@@ -4,6 +4,8 @@ interface Settings {
   accentColor: string;
   bgColor: string;
   surfaceColor: string;
+  sidebarWidth: number;
+  sidebarCollapsed: boolean;
 }
 
 interface SettingsState {
@@ -18,6 +20,8 @@ const DEFAULTS: Settings = {
   accentColor: '#005dff',
   bgColor: '#0c0e14',
   surfaceColor: '#12141c',
+  sidebarWidth: 260,
+  sidebarCollapsed: false,
 };
 
 function loadSettings(): Settings {

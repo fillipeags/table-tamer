@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useRef } from 'react';
+import { SqlEditor, type SqlEditorHandle } from './SqlEditor';
 
 interface SqlConsoleProps {
   onExecute: (sql: string) => void;
@@ -6,40 +7,30 @@ interface SqlConsoleProps {
   onSqlChange?: (sql: string) => void;
   initialSql?: string;
   onSaveQuery?: (sql: string) => void;
+  schema?: Record<string, string[]>;
 }
 
-export function SqlConsole({ onExecute, loading, onSqlChange, initialSql, onSaveQuery }: SqlConsoleProps) {
-  const [sql, setSql] = useState(initialSql ?? '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Sync when initialSql changes from outside (e.g. loading a saved query)
-  useEffect(() => {
-    if (initialSql !== undefined && initialSql !== sql) {
-      setSql(initialSql);
-    }
-  }, [initialSql]);
+export function SqlConsole({ onExecute, loading, onSqlChange, initialSql, onSaveQuery, schema }: SqlConsoleProps) {
+  const editorRef = useRef<SqlEditorHandle>(null);
+  const currentSqlRef = useRef(initialSql ?? '');
 
   const handleExecute = useCallback(() => {
-    const trimmed = sql.trim();
+    const trimmed = currentSqlRef.current.trim();
     if (!trimmed) return;
     onExecute(trimmed);
-  }, [sql, onExecute]);
+  }, [onExecute]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleExecute();
-      }
+  const handleChange = useCallback(
+    (value: string) => {
+      currentSqlRef.current = value;
+      onSqlChange?.(value);
     },
-    [handleExecute]
+    [onSqlChange]
   );
-
-  const isEmpty = !sql.trim();
 
   return (
     <div
-      className="flex flex-col rounded-lg overflow-hidden"
+      className="flex flex-col rounded-lg overflow-hidden h-full"
       style={{ border: '1px solid var(--color-border)' }}
     >
       {/* Editor header */}
@@ -62,26 +53,16 @@ export function SqlConsole({ onExecute, loading, onSqlChange, initialSql, onSave
         </span>
       </div>
 
-      {/* Textarea */}
-      <textarea
-        ref={textareaRef}
-        value={sql}
-        onChange={(e) => { setSql(e.target.value); onSqlChange?.(e.target.value); }}
-        onKeyDown={handleKeyDown}
-        placeholder={`-- Write your SQL query here\nSELECT * FROM table_name LIMIT 100;`}
-        rows={8}
-        className="font-mono text-xs resize-y w-full px-4 py-3"
-        style={{
-          background: 'var(--color-surface-1)',
-          color: 'var(--color-text-primary)',
-          border: 'none',
-          outline: 'none',
-          lineHeight: '1.7',
-          caretColor: 'var(--color-accent)',
-          minHeight: '120px',
-        }}
-        spellCheck={false}
-      />
+      {/* CodeMirror Editor */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <SqlEditor
+          ref={editorRef}
+          schema={schema}
+          initialValue={initialSql}
+          onChange={handleChange}
+          onExecute={handleExecute}
+        />
+      </div>
 
       {/* Bottom bar */}
       <div
@@ -119,9 +100,9 @@ export function SqlConsole({ onExecute, loading, onSqlChange, initialSql, onSave
         </span>
 
         <div className="flex items-center gap-2">
-          {onSaveQuery && !isEmpty && (
+          {onSaveQuery && (
             <button
-              onClick={() => onSaveQuery(sql)}
+              onClick={() => onSaveQuery(currentSqlRef.current)}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors"
               style={{
                 background: 'var(--color-surface-3)',
@@ -140,31 +121,31 @@ export function SqlConsole({ onExecute, loading, onSqlChange, initialSql, onSave
 
           <button
             onClick={handleExecute}
-          disabled={loading || isEmpty}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all disabled:opacity-40"
-          style={{
-            background: loading || isEmpty ? 'var(--color-surface-3)' : 'var(--color-accent)',
-            color: loading || isEmpty ? 'var(--color-text-muted)' : '#ffffff',
-            border: loading || isEmpty ? '1px solid var(--color-border)' : '1px solid transparent',
-            cursor: loading || isEmpty ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.3" />
-                <path d="M6 1.5A4.5 4.5 0 0 1 10.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              Running...
-            </>
-          ) : (
-            <>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M3 2L10 6L3 10V2Z" fill="currentColor" />
-              </svg>
-              Execute
-            </>
-          )}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all disabled:opacity-40"
+            style={{
+              background: loading ? 'var(--color-surface-3)' : 'var(--color-accent)',
+              color: loading ? 'var(--color-text-muted)' : '#ffffff',
+              border: loading ? '1px solid var(--color-border)' : '1px solid transparent',
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.3" />
+                  <path d="M6 1.5A4.5 4.5 0 0 1 10.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                Running...
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M3 2L10 6L3 10V2Z" fill="currentColor" />
+                </svg>
+                Execute
+              </>
+            )}
           </button>
         </div>
       </div>

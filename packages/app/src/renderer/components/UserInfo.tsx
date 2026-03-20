@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../stores/appStore';
 
 interface UserInfoProps {
@@ -133,10 +133,8 @@ export function UserInfo({ sendRequest }: UserInfoProps) {
                       setSetupMode(false);
                     }
                   }}
-                  className="w-full text-left px-3 py-2 text-xs transition-colors flex gap-4"
+                  className="w-full text-left px-3 py-2 text-xs transition-colors flex gap-4 hover-row-accent"
                   style={{ borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-text-primary)', background: 'transparent' }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,93,255,0.05)'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                 >
                   {previewColumns.slice(0, 5).map(col => (
                     <div key={col} className="min-w-0">

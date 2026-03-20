@@ -49,50 +49,97 @@ export function SchemaGraph() {
     const sorted = [...tables].sort((a, b) => (connectionCount.get(b.name) || 0) - (connectionCount.get(a.name) || 0));
 
     const placed = new Map<string, { x: number; y: number }>();
-    const visited = new Set<string>();
-    const nodeW = 180;
-    const nodeH = 44;
-    const gapX = 60;
-    const gapY = 50;
+    const nodeW = 200;
+    const nodeH = 48;
+    const gapX = 140;
+    const gapY = 100;
 
-    // BFS from most connected
-    const queue: { name: string; x: number; y: number }[] = [];
-    if (sorted.length > 0) {
-      queue.push({ name: sorted[0].name, x: 0, y: 0 });
-      visited.add(sorted[0].name);
-    }
+    // Find connected components and process each one
+    const components: string[][] = [];
+    const componentVisited = new Set<string>();
 
-    const maxCols = Math.ceil(Math.sqrt(tables.length));
-
-    while (queue.length > 0) {
-      const { name, x, y } = queue.shift()!;
-      placed.set(name, { x, y });
-
-      // Place neighbors nearby
-      const nbrs = Array.from(neighbors.get(name) || []).filter(n => !visited.has(n));
-      const nx = x + nodeW + gapX;
-      let ny = y;
-      for (const nbr of nbrs) {
-        visited.add(nbr);
-        queue.push({ name: nbr, x: nx, y: ny });
-        ny += nodeH + gapY;
-      }
-    }
-
-    // Place unvisited nodes in a grid below
-    const placedYValues = Array.from(placed.values()).map(p => p.y);
-    let unvisitedY = (placedYValues.length > 0 ? Math.max(...placedYValues) : 0) + nodeH + gapY * 3;
-    let unvisitedCol = 0;
     for (const t of sorted) {
-      if (!placed.has(t.name)) {
-        placed.set(t.name, {
-          x: unvisitedCol * (nodeW + gapX),
-          y: unvisitedY,
+      if (componentVisited.has(t.name)) continue;
+      const component: string[] = [];
+      const bfsQueue = [t.name];
+      componentVisited.add(t.name);
+      while (bfsQueue.length > 0) {
+        const current = bfsQueue.shift()!;
+        component.push(current);
+        const nbrs = neighbors.get(current) || new Set();
+        for (const nbr of nbrs) {
+          if (!componentVisited.has(nbr)) {
+            componentVisited.add(nbr);
+            bfsQueue.push(nbr);
+          }
+        }
+      }
+      components.push(component);
+    }
+
+    // Separate connected components (have edges) from isolated nodes
+    const connectedComponents = components.filter(c => c.length > 1 || (connectionCount.get(c[0]) || 0) > 0);
+    const isolatedNodes = components.filter(c => c.length === 1 && (connectionCount.get(c[0]) || 0) === 0).map(c => c[0]);
+
+    // Layout connected components using BFS with wider spacing
+    let componentStartY = 0;
+
+    for (const component of connectedComponents) {
+      // Sort by connection count within component
+      const compSorted = component.sort((a, b) => (connectionCount.get(b) || 0) - (connectionCount.get(a) || 0));
+      const root = compSorted[0];
+
+      // BFS layout for this component
+      const localVisited = new Set<string>();
+      const localQueue: { name: string; depth: number; parentY: number }[] = [{ name: root, depth: 0, parentY: componentStartY }];
+      localVisited.add(root);
+
+      // Track used positions per depth column to avoid overlaps
+      const depthYPositions = new Map<number, number>();
+
+      while (localQueue.length > 0) {
+        const { name, depth, parentY } = localQueue.shift()!;
+        const x = depth * (nodeW + gapX);
+
+        // Get the next available Y for this depth column
+        const minY = depthYPositions.get(depth) ?? componentStartY;
+        const y = Math.max(minY, parentY);
+
+        placed.set(name, { x, y });
+        depthYPositions.set(depth, y + nodeH + gapY);
+
+        // Queue neighbors
+        const nbrs = Array.from(neighbors.get(name) || []).filter(n => !localVisited.has(n));
+        let childY = y;
+        for (const nbr of nbrs) {
+          localVisited.add(nbr);
+          localQueue.push({ name: nbr, depth: depth + 1, parentY: childY });
+          childY += nodeH + gapY;
+        }
+      }
+
+      // Calculate component bottom
+      const compNodes = component.filter(n => placed.has(n));
+      const maxY = Math.max(...compNodes.map(n => placed.get(n)!.y));
+      componentStartY = maxY + nodeH + gapY * 2;
+    }
+
+    // Place isolated nodes in a grid below connected components
+    if (isolatedNodes.length > 0) {
+      const gridStartY = componentStartY + gapY;
+      const maxCols = Math.max(4, Math.ceil(Math.sqrt(isolatedNodes.length)));
+      let col = 0;
+      let row = 0;
+
+      for (const name of isolatedNodes) {
+        placed.set(name, {
+          x: col * (nodeW + gapX),
+          y: gridStartY + row * (nodeH + gapY),
         });
-        unvisitedCol++;
-        if (unvisitedCol >= maxCols) {
-          unvisitedCol = 0;
-          unvisitedY += nodeH + gapY;
+        col++;
+        if (col >= maxCols) {
+          col = 0;
+          row++;
         }
       }
     }
@@ -111,7 +158,7 @@ export function SchemaGraph() {
           color: 'var(--color-text-primary)',
           fontSize: '10px',
           fontFamily: 'monospace',
-          padding: '6px 10px',
+          padding: '8px 12px',
           width: nodeW,
         },
         sourcePosition: Position.Right,
@@ -126,6 +173,7 @@ export function SchemaGraph() {
       label: r.column,
       labelStyle: { fontSize: '8px', fill: 'var(--color-text-muted)' },
       labelBgStyle: { fill: 'var(--color-surface-0)', fillOpacity: 0.9 },
+      labelBgPadding: [4, 2] as [number, number],
       style: { stroke: 'var(--color-accent)', strokeWidth: 1, strokeOpacity: 0.5 },
       markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color: 'var(--color-accent)' },
       type: 'smoothstep',
@@ -159,13 +207,16 @@ export function SchemaGraph() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         fitView
+        fitViewOptions={{ padding: 0.15, maxZoom: 1.2 }}
         style={{ background: 'var(--color-surface-0)' }}
         proOptions={{ hideAttribution: true }}
         nodesDraggable={true}
         nodesConnectable={false}
         elementsSelectable={true}
+        minZoom={0.05}
+        maxZoom={2}
       >
-        <Background color="var(--color-border-subtle)" gap={24} size={1} />
+        <Background color="var(--color-border-subtle)" gap={32} size={1} />
         <Controls />
         <MiniMap
           nodeColor="var(--color-surface-3)"

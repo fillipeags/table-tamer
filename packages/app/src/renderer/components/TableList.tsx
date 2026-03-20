@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../stores/appStore';
 
 interface TableListProps {
@@ -57,20 +57,28 @@ export function TableList({ onSelectTable }: TableListProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter tables..."
-              className="w-full rounded text-xs pl-6 pr-2 py-1.5 transition-colors"
+              className="w-full rounded text-xs pl-6 pr-10 py-1.5 transition-colors focus-border-accent"
               style={{
                 background: 'var(--color-surface-3)',
                 border: '1px solid var(--color-border)',
                 color: 'var(--color-text-primary)',
                 outline: 'none',
               }}
-              onFocus={(e) => {
-                (e.target as HTMLInputElement).style.borderColor = 'rgba(0, 93, 255, 0.4)';
-              }}
-              onBlur={(e) => {
-                (e.target as HTMLInputElement).style.borderColor = 'var(--color-border)';
-              }}
             />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] rounded px-1 py-px cursor-pointer transition-colors"
+              style={{
+                background: 'var(--color-surface-3)',
+                color: 'var(--color-text-muted)',
+                border: '1px solid var(--color-border-subtle)',
+                lineHeight: '1.4',
+              }}
+              onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+              title="Search tables (⌘K)"
+            >
+              ⌘K
+            </button>
           </div>
         </div>
       )}
@@ -106,20 +114,10 @@ export function TableList({ onSelectTable }: TableListProps) {
                 <button
                   key={table.name}
                   onClick={() => onSelectTable(table.name)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-all group"
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-all group ${!isSelected ? 'hover-row-highlight' : ''}`}
                   style={{
                     background: isSelected ? 'rgba(0, 93, 255, 0.12)' : 'transparent',
                     borderLeft: `2px solid ${isSelected ? 'var(--color-accent)' : 'transparent'}`,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                    }
                   }}
                 >
                   {/* Table icon */}
