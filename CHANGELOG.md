@@ -1,5 +1,12 @@
 # Changelog
 
+# [0.6.0](https://github.com/fillipeags/table-tamer/compare/v0.5.0...v0.6.0) (2026-03-20)
+
+
+### Features
+
+* add Prism WebGL background effect to landing page ([32696d9](https://github.com/fillipeags/table-tamer/commit/32696d9350b3bfa9d41d01d3f2652c41313bfd22))
+
 # [0.5.0](https://github.com/fillipeags/table-tamer/compare/v0.4.0...v0.5.0) (2026-03-20)
 
 

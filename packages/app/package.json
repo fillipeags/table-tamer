@@ -1,6 +1,6 @@
 {
   "name": "@table-tamer/app",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Table Tamer desktop app - WatermelonDB/SQLite inspector",
   "author": "fillipeags <fillipeags@users.noreply.github.com>",
