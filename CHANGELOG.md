@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/fillipeags/table-tamer/compare/v0.3.2...v0.3.3) (2026-03-20)
+
+
+### Bug Fixes
+
+* correct DMG background path to build/background.png ([73c6d50](https://github.com/fillipeags/table-tamer/commit/73c6d50819fc2751782c703aa95b463c9d725f42))
+
 ## [0.3.2](https://github.com/fillipeags/table-tamer/compare/v0.3.1...v0.3.2) (2026-03-19)
 
 
