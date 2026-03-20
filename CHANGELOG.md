@@ -1,5 +1,12 @@
 # Changelog
 
+# [0.5.0](https://github.com/fillipeags/table-tamer/compare/v0.4.0...v0.5.0) (2026-03-20)
+
+
+### Features
+
+* add landing page with download buttons from GitHub Releases ([d1ede04](https://github.com/fillipeags/table-tamer/commit/d1ede04c856bb28ec816132a79665dcfc2256a87))
+
 # [0.4.0](https://github.com/fillipeags/table-tamer/compare/v0.3.3...v0.4.0) (2026-03-20)
 
 
