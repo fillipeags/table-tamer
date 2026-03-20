@@ -301,34 +301,15 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
 
         return (
           <div
-            className="cell-container px-3 py-1.5 font-mono whitespace-nowrap overflow-hidden text-ellipsis"
+            className={`cell-container px-3 py-1.5 font-mono whitespace-nowrap overflow-hidden text-ellipsis${canEdit ? ' editable-cell' : ''}`}
             style={{
               color: 'var(--color-text-primary)',
               cursor: canEdit ? 'text' : 'default',
               position: 'relative',
             }}
             onDoubleClick={() => canEdit && handleCellDoubleClick(rowIndex, col, getValue())}
+            title={canEdit ? 'Double-click to edit' : undefined}
           >
-            {canEdit && (
-              <svg
-                className="edit-indicator"
-                width="8"
-                height="8"
-                viewBox="0 0 16 16"
-                fill="none"
-                style={{
-                  position: 'absolute',
-                  top: '3px',
-                  right: '3px',
-                  color: 'var(--color-text-muted)',
-                  opacity: 0,
-                  transition: 'opacity 150ms ease',
-                  pointerEvents: 'none',
-                }}
-              >
-                <path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-            )}
             <CellValue value={getValue()} />
             <CellCopyButton value={getValue()} />
           </div>
@@ -857,6 +838,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
           columns={tableData.columns}
           tableName={tableName || ''}
           onClose={() => setDetailRecord(null)}
+          onUpdateRecord={onUpdateRecord}
         />
       )}
 

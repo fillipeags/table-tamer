@@ -49,15 +49,14 @@ function CopyButton({ value }: { value: string }) {
 }
 
 function JsonValue({ value }: { value: string }) {
-  const [formatted, setFormatted] = useState(false);
-
-  const displayValue = formatted ? JSON.stringify(JSON.parse(value.trim()), null, 2) : value;
+  const [raw, setRaw] = useState(false);
+  const displayValue = raw ? value : JSON.stringify(JSON.parse(value.trim()), null, 2);
 
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1">
         <button
-          onClick={() => setFormatted(!formatted)}
+          onClick={() => setRaw(!raw)}
           className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider transition-colors"
           style={{
             background: 'var(--color-surface-3)',
@@ -69,7 +68,7 @@ function JsonValue({ value }: { value: string }) {
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
             <path d="M4 2v3c0 1-1 2-2 2s2 1 2 2v3M12 2v3c0 1 1 2 2 2s-2 1-2 2v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
-          {formatted ? 'Raw' : 'Format'}
+          {raw ? 'Format' : 'Raw'}
         </button>
       </div>
       <pre
@@ -77,19 +76,136 @@ function JsonValue({ value }: { value: string }) {
         style={{
           color: 'var(--color-text-primary)',
           fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-          ...(formatted
-            ? {
-                background: 'var(--color-surface-0)',
-                border: '1px solid var(--color-border-subtle)',
-                borderRadius: '6px',
-                padding: '8px 10px',
-                lineHeight: '1.6',
-              }
-            : {}),
+          background: 'var(--color-surface-0)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: '6px',
+          padding: '8px 10px',
+          lineHeight: '1.6',
         }}
       >
         {displayValue}
       </pre>
+    </div>
+  );
+}
+
+interface EditableFieldProps {
+  column: string;
+  value: unknown;
+  isEditable: boolean;
+  onSave: (column: string, newValue: string) => void;
+}
+
+function EditableField({ column, value, isEditable, onSave }: EditableFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+
+  const stringValue = value === null || value === undefined ? '' : String(value);
+  const isJson = typeof value === 'string' && isJsonString(value);
+  const isNull = value === null || value === undefined;
+
+  const startEditing = useCallback(() => {
+    if (!isEditable) return;
+    setEditValue(isNull ? 'NULL' : stringValue);
+    setEditing(true);
+  }, [isEditable, isNull, stringValue]);
+
+  const cancelEditing = useCallback(() => {
+    setEditing(false);
+    setEditValue('');
+  }, []);
+
+  const saveEdit = useCallback(() => {
+    const oldStr = isNull ? 'NULL' : stringValue;
+    if (editValue !== oldStr) {
+      onSave(column, editValue === 'NULL' ? 'NULL' : editValue);
+    }
+    setEditing(false);
+  }, [column, editValue, isNull, stringValue, onSave]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  }, [saveEdit, cancelEditing]);
+
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <textarea
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          rows={isJson ? 6 : 2}
+          className="w-full text-xs font-mono rounded px-2 py-1.5 resize-y"
+          style={{
+            background: 'var(--color-surface-0)',
+            border: '1px solid rgba(0, 93, 255, 0.5)',
+            color: 'var(--color-text-primary)',
+            outline: 'none',
+            caretColor: 'var(--color-accent)',
+          }}
+        />
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={saveEdit}
+            className="px-2 py-1 rounded text-[10px] font-medium"
+            style={{ background: 'var(--color-accent)', color: '#fff' }}
+          >
+            Save
+          </button>
+          <button
+            onClick={cancelEditing}
+            className="px-2 py-1 rounded text-[10px] font-medium"
+            style={{ background: 'var(--color-surface-3)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+          >
+            Cancel
+          </button>
+          <span className="text-[9px] ml-1" style={{ color: 'var(--color-text-muted)' }}>
+            Enter to save, Esc to cancel
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-1.5">
+      <div className="flex-1 text-xs font-mono break-all" style={{ color: isNull ? 'var(--color-text-muted)' : 'var(--color-text-primary)' }}>
+        {isNull ? (
+          <span className="italic">NULL</span>
+        ) : typeof value === 'boolean' ? (
+          <span
+            className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-medium"
+            style={{
+              background: value ? 'rgba(0, 93, 255, 0.15)' : 'rgba(239, 68, 68, 0.12)',
+              color: value ? '#005dff' : '#ef4444',
+            }}
+          >
+            {value ? 'true' : 'false'}
+          </span>
+        ) : isJson ? (
+          <JsonValue value={stringValue} />
+        ) : (
+          String(value)
+        )}
+      </div>
+      {isEditable && (
+        <button
+          onClick={startEditing}
+          title="Edit value"
+          className="inline-flex items-center justify-center rounded p-0.5 shrink-0 transition-colors"
+          style={{ color: 'var(--color-text-muted)', cursor: 'pointer' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+            <path d="M11 2l3 3-9 9H2v-3l9-9z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -99,9 +215,17 @@ interface RecordDetailDialogProps {
   columns: string[];
   tableName: string;
   onClose: () => void;
+  onUpdateRecord?: (tableName: string, recordId: string, column: string, value: unknown) => Promise<void>;
 }
 
-export function RecordDetailDialog({ record, columns, tableName, onClose }: RecordDetailDialogProps) {
+export function RecordDetailDialog({ record, columns, tableName, onClose, onUpdateRecord }: RecordDetailDialogProps) {
+  const recordId = String(record['id'] ?? '');
+
+  const handleSaveField = useCallback(async (column: string, newValue: string) => {
+    if (!onUpdateRecord || !recordId) return;
+    await onUpdateRecord(tableName, recordId, column, newValue === 'NULL' ? null : newValue);
+  }, [onUpdateRecord, tableName, recordId]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-end" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
       <div
@@ -123,7 +247,7 @@ export function RecordDetailDialog({ record, columns, tableName, onClose }: Reco
               Record Detail
             </div>
             <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-              {tableName} / {String(record['id'] ?? '').slice(0, 16)}...
+              {tableName} / {recordId.slice(0, 16)}{recordId.length > 16 ? '...' : ''}
             </div>
           </div>
           <button
@@ -141,7 +265,7 @@ export function RecordDetailDialog({ record, columns, tableName, onClose }: Reco
           {columns.map((col) => {
             const value = record[col];
             const stringValue = value === null || value === undefined ? '' : String(value);
-            const isJson = typeof value === 'string' && isJsonString(value);
+            const isEditable = col !== 'id' && !!onUpdateRecord;
 
             return (
               <div
@@ -157,25 +281,12 @@ export function RecordDetailDialog({ record, columns, tableName, onClose }: Reco
                     <CopyButton value={stringValue} />
                   )}
                 </div>
-                <div className="text-xs font-mono break-all" style={{ color: value === null || value === undefined ? 'var(--color-text-muted)' : 'var(--color-text-primary)' }}>
-                  {value === null || value === undefined ? (
-                    <span className="italic">NULL</span>
-                  ) : typeof value === 'boolean' ? (
-                    <span
-                      className="inline-flex items-center rounded px-1.5 py-px text-[10px] font-medium"
-                      style={{
-                        background: value ? 'rgba(0, 93, 255, 0.15)' : 'rgba(239, 68, 68, 0.12)',
-                        color: value ? '#005dff' : '#ef4444',
-                      }}
-                    >
-                      {value ? 'true' : 'false'}
-                    </span>
-                  ) : isJson ? (
-                    <JsonValue value={stringValue} />
-                  ) : (
-                    String(value)
-                  )}
-                </div>
+                <EditableField
+                  column={col}
+                  value={value}
+                  isEditable={isEditable}
+                  onSave={handleSaveField}
+                />
               </div>
             );
           })}

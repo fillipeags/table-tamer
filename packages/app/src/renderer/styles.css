@@ -143,9 +143,10 @@ body {
   pointer-events: auto;
 }
 
-/* Edit indicator: visible on editable cell hover */
-.cell-container:hover .edit-indicator {
-  opacity: 0.35 !important;
+/* Editable cell: subtle highlight on hover */
+.editable-cell:hover {
+  outline: 1px dashed rgba(0, 93, 255, 0.3);
+  outline-offset: -1px;
 }
 
 /* ReactFlow dark theme overrides */
