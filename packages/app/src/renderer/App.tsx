@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isErrorResponse, type ResponsePayload, type ColumnInfo } from '@table-tamer/core';
 import { Layout } from './components/Layout';
 import { ConnectionStatus } from './components/ConnectionStatus';
@@ -10,6 +10,7 @@ import { SchemaViewer } from './components/SchemaViewer';
 import { SqlConsole } from './components/SqlConsole';
 import { QueryHistory } from './components/QueryHistory';
 import { SavedQueries } from './components/SavedQueries';
+import { ResizableSplitPane } from './components/ResizableSplitPane';
 import { SettingsDialog } from './components/SettingsDialog';
 import { SchemaGraph } from './components/SchemaGraph';
 import { UserInfo } from './components/UserInfo';
@@ -64,6 +65,16 @@ export default function App() {
   const loading = useAppStore((s) => s.loading);
   const tables = useAppStore((s) => s.tables);
   const tableData = useAppStore((s) => s.tableData);
+  const allSchemas = useAppStore((s) => s.allSchemas);
+
+  // Transform allSchemas (Record<string, ColumnInfo[]>) to Record<string, string[]> for SQL autocomplete
+  const sqlEditorSchema = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const [tableName, columns] of Object.entries(allSchemas)) {
+      result[tableName] = columns.map((col) => col.name);
+    }
+    return result;
+  }, [allSchemas]);
 
   const [activeTab, setActiveTab] = useState<Tab>('data');
   const [sqlInput, setSqlInput] = useState('');
@@ -441,120 +452,131 @@ export default function App() {
 
             {/* SQL Console tab */}
             {activeTab === 'sql' && (
-              <div className="flex flex-col gap-4 p-4 overflow-y-auto h-full">
-                <SqlConsole
-                  onExecute={handleExecuteSql}
-                  loading={loading['execute_sql']}
-                  onSqlChange={(sql) => setSqlInput(sql)}
-                  initialSql={sqlInput}
-                  onSaveQuery={(sql) => { setSqlInput(sql); setShowSaveFromConsole(true); }}
-                />
+              <ResizableSplitPane
+                initialTopRatio={0.4}
+                minTopHeight={150}
+                minBottomHeight={120}
+                top={
+                  <div className="h-full p-4 pb-2">
+                    <SqlConsole
+                      onExecute={handleExecuteSql}
+                      loading={loading['execute_sql']}
+                      onSqlChange={(sql) => setSqlInput(sql)}
+                      initialSql={sqlInput}
+                      onSaveQuery={(sql) => { setSqlInput(sql); setShowSaveFromConsole(true); }}
+                      schema={sqlEditorSchema}
+                    />
+                  </div>
+                }
+                bottom={
+                  <div className="flex flex-col gap-4 p-4 pt-2 overflow-y-auto h-full">
+                    <SavedQueries
+                      onRunQuery={(sql) => { setSqlInput(sql); handleExecuteSql(sql); }}
+                      currentSql={sqlInput}
+                      externalShowSave={showSaveFromConsole}
+                      onExternalSaveDone={() => setShowSaveFromConsole(false)}
+                    />
 
-                <SavedQueries
-                  onRunQuery={(sql) => { setSqlInput(sql); handleExecuteSql(sql); }}
-                  currentSql={sqlInput}
-                  externalShowSave={showSaveFromConsole}
-                  onExternalSaveDone={() => setShowSaveFromConsole(false)}
-                />
-
-                {sqlResult && (
-                  <div
-                    className="rounded-lg overflow-hidden"
-                    style={{ border: '1px solid var(--color-border)' }}
-                  >
-                    {/* Result header */}
-                    <div
-                      className="flex items-center gap-3 px-4 py-2"
-                      style={{
-                        background: 'var(--color-surface-2)',
-                        borderBottom: '1px solid var(--color-border)',
-                      }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: 'var(--color-accent)' }}>
-                        <path d="M2 10L6 2L10 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                        <line x1="3.5" y1="7.5" x2="8.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-                      </svg>
-                      <span
-                        className="text-[10px] font-semibold uppercase tracking-wider"
-                        style={{ color: 'var(--color-text-muted)' }}
+                    {sqlResult && (
+                      <div
+                        className="rounded-lg overflow-hidden flex-1 min-h-0 flex flex-col"
+                        style={{ border: '1px solid var(--color-border)' }}
                       >
-                        Results
-                      </span>
-                      <div className="flex items-center gap-2 ml-auto">
-                        <span
-                          className="text-[10px] rounded px-2 py-px"
-                          style={{ background: 'rgba(0,93,255,0.1)', color: 'var(--color-accent)' }}
+                        {/* Result header */}
+                        <div
+                          className="flex items-center gap-3 px-4 py-2 shrink-0"
+                          style={{
+                            background: 'var(--color-surface-2)',
+                            borderBottom: '1px solid var(--color-border)',
+                          }}
                         >
-                          {sqlResult.rowCount} rows
-                        </span>
-                        <span
-                          className="text-[10px]"
-                          style={{ color: 'var(--color-text-muted)' }}
-                        >
-                          {sqlResult.executionTimeMs}ms
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Result table */}
-                    <div className="overflow-auto" style={{ maxHeight: '360px' }}>
-                      <table className="w-full text-xs border-collapse" style={{ minWidth: 'max-content' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--color-surface-2)' }}>
-                            {sqlResult.columns.map((col) => (
-                              <th
-                                key={col}
-                                className="sticky top-0 text-left px-3 py-2 whitespace-nowrap font-semibold"
-                                style={{
-                                  background: 'var(--color-surface-2)',
-                                  borderBottom: '1px solid var(--color-border)',
-                                  borderRight: '1px solid var(--color-border-subtle)',
-                                  color: 'var(--color-text-secondary)',
-                                  zIndex: 10,
-                                }}
-                              >
-                                {col}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sqlResult.rows.map((row, i) => (
-                            <tr
-                              key={i}
-                              style={{
-                                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                                borderBottom: '1px solid var(--color-border-subtle)',
-                              }}
-                              onMouseEnter={(e) => {
-                                (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0,93,255,0.04)';
-                              }}
-                              onMouseLeave={(e) => {
-                                (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
-                              }}
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: 'var(--color-accent)' }}>
+                            <path d="M2 10L6 2L10 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                            <line x1="3.5" y1="7.5" x2="8.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                          </svg>
+                          <span
+                            className="text-[10px] font-semibold uppercase tracking-wider"
+                            style={{ color: 'var(--color-text-muted)' }}
+                          >
+                            Results
+                          </span>
+                          <div className="flex items-center gap-2 ml-auto">
+                            <span
+                              className="text-[10px] rounded px-2 py-px"
+                              style={{ background: 'rgba(0,93,255,0.1)', color: 'var(--color-accent)' }}
                             >
-                              {sqlResult.columns.map((col) => (
-                                <td
-                                  key={col}
-                                  className="px-3 py-1.5 font-mono whitespace-nowrap"
+                              {sqlResult.rowCount} rows
+                            </span>
+                            <span
+                              className="text-[10px]"
+                              style={{ color: 'var(--color-text-muted)' }}
+                            >
+                              {sqlResult.executionTimeMs}ms
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Result table */}
+                        <div className="overflow-auto flex-1">
+                          <table className="w-full text-xs border-collapse" style={{ minWidth: 'max-content' }}>
+                            <thead>
+                              <tr style={{ background: 'var(--color-surface-2)' }}>
+                                {sqlResult.columns.map((col) => (
+                                  <th
+                                    key={col}
+                                    className="sticky top-0 text-left px-3 py-2 whitespace-nowrap font-semibold"
+                                    style={{
+                                      background: 'var(--color-surface-2)',
+                                      borderBottom: '1px solid var(--color-border)',
+                                      borderRight: '1px solid var(--color-border-subtle)',
+                                      color: 'var(--color-text-secondary)',
+                                      zIndex: 10,
+                                    }}
+                                  >
+                                    {col}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sqlResult.rows.map((row, i) => (
+                                <tr
+                                  key={i}
                                   style={{
-                                    color: 'var(--color-text-primary)',
-                                    borderRight: '1px solid var(--color-border-subtle)',
+                                    background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                                    borderBottom: '1px solid var(--color-border-subtle)',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0,93,255,0.04)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
                                   }}
                                 >
-                                  <CellValue value={row[col]} />
-                                </td>
+                                  {sqlResult.columns.map((col) => (
+                                    <td
+                                      key={col}
+                                      className="px-3 py-1.5 font-mono whitespace-nowrap"
+                                      style={{
+                                        color: 'var(--color-text-primary)',
+                                        borderRight: '1px solid var(--color-border-subtle)',
+                                      }}
+                                    >
+                                      <CellValue value={row[col]} />
+                                    </td>
+                                  ))}
+                                </tr>
                               ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
 
-                <QueryHistory onReplay={handleExecuteSql} />
-              </div>
+                    <QueryHistory onReplay={handleExecuteSql} />
+                  </div>
+                }
+              />
             )}
           </div>
         </div>
