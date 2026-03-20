@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { autoUpdater } from 'electron-updater';
@@ -81,6 +81,21 @@ app.whenReady().then(() => {
     mainWindow?.webContents.send(event, ...args);
   });
   registerIpcHandlers();
+  // Auto-updater events → renderer
+  autoUpdater.on('update-available', (info) => {
+    mainWindow?.webContents.send('update:available', info.version);
+  });
+  autoUpdater.on('download-progress', (progress) => {
+    mainWindow?.webContents.send('update:download-progress', Math.round(progress.percent));
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    mainWindow?.webContents.send('update:downloaded', info.version);
+  });
+
+  ipcMain.on('update:install', () => {
+    autoUpdater.quitAndInstall();
+  });
+
   autoUpdater.checkForUpdatesAndNotify();
 
   app.on('activate', () => {

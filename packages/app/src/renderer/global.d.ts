@@ -5,6 +5,10 @@ interface TableTamerAPI {
   sendRequest: (clientId: string, request: any) => void;
   getServerStatus: () => Promise<{ running: boolean; port: number; clientCount: number }>;
   getClients: () => Promise<any[]>;
+  onUpdateAvailable: (callback: (event: any, version: string) => void) => () => void;
+  onUpdateDownloadProgress: (callback: (event: any, percent: number) => void) => () => void;
+  onUpdateDownloaded: (callback: (event: any, version: string) => void) => () => void;
+  installUpdate: () => void;
 }
 
 declare global {

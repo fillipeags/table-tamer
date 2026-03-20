@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
 
 declare const __APP_VERSION__: string;
@@ -29,6 +29,18 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
     setSidebarPeeking(false);
     updateSetting('sidebarCollapsed', next);
   }, [sidebarCollapsed, updateSetting]);
+
+  // Cmd+S keyboard shortcut to toggle sidebar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        toggleCollapsed();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleCollapsed]);
 
   // Resize handling
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -125,9 +137,21 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
               {!sidebarCollapsed && <line x1="2" y1="11" x2="4" y2="11" stroke="currentColor" strokeWidth="1" />}
             </svg>
           </button>
+          {/* Cmd+S hint */}
+          <span
+            className="text-[10px] rounded px-1.5 py-0.5 select-none"
+            style={{
+              background: 'var(--color-surface-3)',
+              color: 'var(--color-text-muted)',
+              border: '1px solid var(--color-border-subtle)',
+            }}
+            title="Toggle sidebar"
+          >
+            {'\u2318'}S
+          </span>
           {/* Cmd+K hint */}
           <span
-            className="text-[10px] rounded px-1.5 py-0.5 ml-1 select-none"
+            className="text-[10px] rounded px-1.5 py-0.5 select-none"
             style={{
               background: 'var(--color-surface-3)',
               color: 'var(--color-text-muted)',
@@ -135,7 +159,7 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
             }}
             title="Search tables"
           >
-            ⌘K
+            {'\u2318'}K
           </span>
         </div>
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>

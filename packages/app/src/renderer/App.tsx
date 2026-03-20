@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { DeviceSelector } from './components/DeviceSelector';
@@ -14,6 +14,8 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { SchemaGraph } from './components/SchemaGraph';
 import { UserInfo } from './components/UserInfo';
 import { CommandPalette } from './components/CommandPalette';
+import { ToastContainer, useToastStore } from './components/Toast';
+import { UpdateBanner } from './components/UpdateBanner';
 import { useWebSocketServer } from './hooks/useWebSocketServer';
 import { useConnections } from './hooks/useConnections';
 import { useDataFetching } from './hooks/useDataFetching';
@@ -21,6 +23,24 @@ import { useSqlExecution } from './hooks/useSqlExecution';
 import { useTableRefresh } from './hooks/useTableRefresh';
 import { useRecordOperations } from './hooks/useRecordOperations';
 import { useAppStore } from './stores/appStore';
+
+function useRelativeTime(timestamp: number | null): string {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!timestamp) return;
+    const interval = setInterval(() => setTick((t) => t + 1), 10000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+
+  if (!timestamp) return '';
+  const diff = Math.floor((Date.now() - timestamp) / 1000);
+  if (diff < 5) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  const mins = Math.floor(diff / 60);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ago`;
+}
 
 type Tab = 'data' | 'schema' | 'graph' | 'sql' | 'user';
 
@@ -80,11 +100,31 @@ export default function App() {
     showRefreshTooltip,
   } = useTableRefresh(pageSize);
 
-  const { handleUpdateRecord, handleDeleteRecords } = useRecordOperations(pageSize);
+  const { handleUpdateRecord: rawUpdateRecord, handleDeleteRecords: rawDeleteRecords } = useRecordOperations(pageSize);
+  const addToast = useToastStore((s) => s.addToast);
 
   const [activeTab, setActiveTab] = useState<Tab>('data');
   const [showSettings, setShowSettings] = useState(false);
   const [showSaveFromConsole, setShowSaveFromConsole] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+  const lastSyncLabel = useRelativeTime(lastSyncTime);
+
+  // Wrap refresh to track last sync time
+  const handleRefreshWithSync = async () => {
+    await handleRefresh();
+    setLastSyncTime(Date.now());
+  };
+
+  // Wrap update/delete to show toasts
+  const handleUpdateRecord = async (tableName: string, recordId: string, column: string, value: unknown) => {
+    await rawUpdateRecord(tableName, recordId, column, value);
+    addToast(`Updated 1 record in ${tableName}`);
+  };
+
+  const handleDeleteRecords = async (tableName: string, recordIds: string[]) => {
+    await rawDeleteRecords(tableName, recordIds);
+    addToast(`Deleted ${recordIds.length} record${recordIds.length > 1 ? 's' : ''} from ${tableName}`);
+  };
 
   const handleSelectTableAndSwitchTab = async (name: string) => {
     setActiveTab('data');
@@ -107,9 +147,18 @@ export default function App() {
       header={
         <div className="flex items-center gap-2">
           {activeDeviceId && (
-            <div className="relative">
+            <div className="relative flex items-center gap-1.5">
+              {lastSyncLabel && (
+                <span
+                  className="text-[10px] tabular-nums"
+                  style={{ color: 'var(--color-text-muted)' }}
+                  title={lastSyncTime ? new Date(lastSyncTime).toLocaleString() : undefined}
+                >
+                  {lastSyncLabel}
+                </span>
+              )}
               <button
-                onClick={handleRefresh}
+                onClick={handleRefreshWithSync}
                 className="flex items-center justify-center rounded p-1 hover-text-primary"
                 title="Refresh data"
               >
@@ -155,6 +204,7 @@ export default function App() {
               )}
             </div>
           )}
+          <UpdateBanner />
           <DeviceSelector />
           <ConnectionStatus />
           <button
@@ -172,6 +222,16 @@ export default function App() {
       sidebar={
         <div className="flex flex-col flex-1 overflow-hidden">
           <DatabaseInfo />
+          {/* Visual divider between database info and tables */}
+          <div
+            className="mx-3 shrink-0"
+            style={{
+              height: '1px',
+              background: 'linear-gradient(to right, transparent, var(--color-border), transparent)',
+              marginTop: '4px',
+              marginBottom: '2px',
+            }}
+          />
           <TableList onSelectTable={handleSelectTableAndSwitchTab} />
         </div>
       }
@@ -380,6 +440,7 @@ export default function App() {
     />
     {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
     <CommandPalette onSelectTable={handleSelectTableAndSwitchTab} />
+    <ToastContainer />
     </>
   );
 }
