@@ -139,8 +139,8 @@ export const SqlEditor = forwardRef<SqlEditorHandle, SqlEditorProps>(
       const state = EditorState.create({
         doc: initialValue,
         extensions: [
-          basicSetup,
           executeKeymap,
+          basicSetup,
           sqlCompartment.current.of(sqlExtension),
           oneDark,
           editorTheme,

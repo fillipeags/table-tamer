@@ -117,6 +117,22 @@ body {
   background: var(--color-border);
 }
 
+/* Cell copy button: visible on cell hover */
+.cell-container .cell-copy-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+.cell-container:hover .cell-copy-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Edit indicator: visible on editable cell hover */
+.cell-container:hover .edit-indicator {
+  opacity: 0.35 !important;
+}
+
 /* ReactFlow dark theme overrides */
 .react-flow__controls button {
   background: var(--color-surface-2) !important;

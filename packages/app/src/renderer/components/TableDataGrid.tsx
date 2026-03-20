@@ -20,6 +20,58 @@ interface TableDataGridProps {
 
 type RowData = Record<string, unknown>;
 
+function CellCopyButton({ value }: { value: unknown }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = value === null || value === undefined ? '' : String(value);
+    navigator.clipboard.writeText(text).catch(console.error);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [value]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : 'Copy cell'}
+      className="cell-copy-btn"
+      style={{
+        position: 'absolute',
+        top: '50%',
+        right: '4px',
+        transform: 'translateY(-50%)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '20px',
+        height: '20px',
+        borderRadius: '4px',
+        background: copied ? 'rgba(0, 93, 255, 0.15)' : 'var(--color-surface-3)',
+        border: '1px solid var(--color-border)',
+        color: copied ? 'var(--color-accent)' : 'var(--color-text-muted)',
+        cursor: 'pointer',
+        opacity: copied ? 1 : undefined,
+        transition: 'opacity 150ms ease, color 150ms ease, background 150ms ease',
+        lineHeight: 0,
+        padding: 0,
+        zIndex: 2,
+      }}
+    >
+      {copied ? (
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+          <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+          <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function CellValue({ value }: { value: unknown }) {
   if (value === null || value === undefined) {
     return (
@@ -94,6 +146,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC' | null>(null);
   const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
+  const [copiedRowId, setCopiedRowId] = useState<string | null>(null);
 
   const editInputRef = useRef<HTMLInputElement>(null);
 
@@ -195,9 +248,11 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
   }, [selectedRows]);
 
   // Copy row as JSON
-  const handleCopyRow = useCallback((row: RowData) => {
+  const handleCopyRow = useCallback((row: RowData, recordId: string) => {
     const json = JSON.stringify(row, null, 2);
     navigator.clipboard.writeText(json).catch(console.error);
+    setCopiedRowId(recordId);
+    setTimeout(() => setCopiedRowId(null), 1500);
   }, []);
 
   // Delete single row
@@ -246,15 +301,36 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
 
         return (
           <div
-            className="px-3 py-1.5 font-mono whitespace-nowrap overflow-hidden text-ellipsis"
+            className="cell-container px-3 py-1.5 font-mono whitespace-nowrap overflow-hidden text-ellipsis"
             style={{
               color: 'var(--color-text-primary)',
               cursor: canEdit ? 'text' : 'default',
+              position: 'relative',
             }}
             onDoubleClick={() => canEdit && handleCellDoubleClick(rowIndex, col, getValue())}
-            title={canEdit ? 'Double-click to edit' : undefined}
           >
+            {canEdit && (
+              <svg
+                className="edit-indicator"
+                width="8"
+                height="8"
+                viewBox="0 0 16 16"
+                fill="none"
+                style={{
+                  position: 'absolute',
+                  top: '3px',
+                  right: '3px',
+                  color: 'var(--color-text-muted)',
+                  opacity: 0,
+                  transition: 'opacity 150ms ease',
+                  pointerEvents: 'none',
+                }}
+              >
+                <path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              </svg>
+            )}
             <CellValue value={getValue()} />
+            <CellCopyButton value={getValue()} />
           </div>
         );
       },
@@ -402,14 +478,14 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                     </th>
                   );
                 })}
-                {/* Row actions column header */}
+                {/* Row actions column header - now minimal width */}
                 <th
                   className="sticky top-0 z-10 py-2 font-medium select-none"
                   style={{
                     background: 'var(--color-surface-2)',
                     borderBottom: '1px solid var(--color-border)',
-                    width: '80px',
-                    minWidth: '80px',
+                    width: '16px',
+                    minWidth: '16px',
                   }}
                 />
               </tr>
@@ -449,6 +525,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                 const rowNumber = startRow + i;
                 const recordId = String(row.original['id'] ?? '');
                 const isRowSelected = recordId ? selectedRows.has(recordId) : false;
+                const isRowCopied = copiedRowId === recordId;
 
                 return (
                   <tr
@@ -458,6 +535,7 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                       background: isRowSelected
                         ? 'rgba(0, 93, 255, 0.07)'
                         : isEven ? 'transparent' : 'rgba(255,255,255,0.015)',
+                      position: 'relative',
                     }}
                   >
                     {/* Checkbox */}
@@ -528,36 +606,93 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                         </td>
                       );
                     })}
-                    {/* Row actions on hover */}
+                    {/* Row actions - floating pill on hover */}
                     <td
                       className="py-1 select-none"
                       style={{
                         borderBottom: '1px solid var(--color-border-subtle)',
-                        width: '80px',
-                        minWidth: '80px',
+                        width: '16px',
+                        minWidth: '16px',
+                        position: 'relative',
                       }}
                     >
-                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/* Copy as JSON */}
+                      <div
+                        className="row-actions-pill opacity-0 group-hover:opacity-100"
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          padding: '3px 6px',
+                          borderRadius: '20px',
+                          background: 'rgba(26, 29, 40, 0.85)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          border: '1px solid var(--color-border)',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                          transition: 'opacity 150ms ease',
+                          zIndex: 5,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {/* Copy row as JSON */}
                         <button
-                          onClick={() => handleCopyRow(row.original)}
-                          title="Copy row as JSON"
-                          className="p-1 rounded hover-text-primary"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
+                          onClick={() => handleCopyRow(row.original, recordId)}
+                          title={isRowCopied ? 'Copied!' : 'Copy row JSON'}
+                          className="hover-text-primary"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '4px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            lineHeight: 0,
+                            color: isRowCopied ? 'var(--color-accent)' : undefined,
+                            transition: 'background 150ms ease',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
                         >
-                          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                            <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-                            <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.3" />
-                          </svg>
+                          {isRowCopied ? (
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+                              <path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" strokeWidth="1.3" />
+                            </svg>
+                          )}
                         </button>
                         {/* Edit (open detail) */}
                         <button
                           onClick={() => setDetailRecord({ record: row.original, index: i })}
                           title="View / edit record"
-                          className="p-1 rounded hover-text-accent"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
+                          className="hover-text-accent"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '4px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            lineHeight: 0,
+                            transition: 'background 150ms ease',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
                         >
-                          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                             <path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
                             <path d="M9.5 4.5l2 2" stroke="currentColor" strokeWidth="1.3" />
                           </svg>
@@ -567,10 +702,24 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                           <button
                             onClick={() => handleDeleteSingleRow(recordId)}
                             title="Delete record"
-                            className="p-1 rounded hover-text-danger"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
+                            className="hover-text-danger"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '4px',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              lineHeight: 0,
+                              transition: 'background 150ms ease',
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; }}
                           >
-                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                               <path d="M3 4h10l-1 10H4L3 4zM6 2h4M2 4h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                             </svg>
                           </button>
