@@ -81,6 +81,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showSaveFromConsole, setShowSaveFromConsole] = useState(false);
   const [pageSize, setPageSize] = useState(50);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC' | null>(null);
 
   // Refresh diff state
   const [refreshDiff, setRefreshDiff] = useState<{ added: string[]; removed: string[]; changed: { name: string; oldCount: number; newCount: number }[] } | null>(null);
@@ -122,10 +124,34 @@ export default function App() {
     }).catch(console.error);
   }, [activeDeviceId]);
 
+  const handleSort = useCallback(
+    async (column: string, direction: 'ASC' | 'DESC') => {
+      if (!selectedTable) return;
+      const orderBy = column || undefined;
+      const orderDir = column ? direction : undefined;
+      setSortColumn(orderBy ?? null);
+      setSortDirection(orderDir ?? null);
+      const res = await sendRequest({
+        action: 'get_table_data',
+        tableName: selectedTable,
+        page: 1,
+        pageSize,
+        orderBy,
+        orderDir,
+      });
+      if (!isErrorResponse(res) && res.action === 'get_table_data') {
+        setTableData(res);
+      }
+    },
+    [selectedTable, sendRequest, setTableData, pageSize]
+  );
+
   const handleSelectTable = useCallback(
     async (name: string) => {
       setSelectedTable(name);
       setActiveTab('data');
+      setSortColumn(null);
+      setSortDirection(null);
 
       const [dataRes, schemaRes] = await Promise.all([
         sendRequest({ action: 'get_table_data', tableName: name, page: 1, pageSize }),
@@ -150,12 +176,14 @@ export default function App() {
         tableName: selectedTable,
         page,
         pageSize,
+        orderBy: sortColumn || undefined,
+        orderDir: sortDirection || undefined,
       });
       if (!isErrorResponse(res) && res.action === 'get_table_data') {
         setTableData(res);
       }
     },
-    [selectedTable, sendRequest, setTableData, pageSize]
+    [selectedTable, sendRequest, setTableData, pageSize, sortColumn, sortDirection]
   );
 
   const handlePageSizeChange = useCallback(
@@ -167,12 +195,14 @@ export default function App() {
         tableName: selectedTable,
         page: 1,
         pageSize: newPageSize,
+        orderBy: sortColumn || undefined,
+        orderDir: sortDirection || undefined,
       });
       if (!isErrorResponse(res) && res.action === 'get_table_data') {
         setTableData(res);
       }
     },
-    [selectedTable, sendRequest, setTableData]
+    [selectedTable, sendRequest, setTableData, sortColumn, sortDirection]
   );
 
   const handleRefresh = useCallback(async () => {
@@ -420,6 +450,7 @@ export default function App() {
                     onUpdateRecord={handleUpdateRecord}
                     onDeleteRecords={handleDeleteRecords}
                     tableName={selectedTable}
+                    onSort={handleSort}
                   />
                 )}
               </div>
