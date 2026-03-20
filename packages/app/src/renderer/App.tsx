@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isErrorResponse, type ResponsePayload, type ColumnInfo } from '@table-tamer/core';
+import { useState } from 'react';
 import { Layout } from './components/Layout';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { DeviceSelector } from './components/DeviceSelector';
@@ -17,7 +16,10 @@ import { UserInfo } from './components/UserInfo';
 import { CommandPalette } from './components/CommandPalette';
 import { useWebSocketServer } from './hooks/useWebSocketServer';
 import { useConnections } from './hooks/useConnections';
-import { useQueryHistory } from './hooks/useQueryHistory';
+import { useDataFetching } from './hooks/useDataFetching';
+import { useSqlExecution } from './hooks/useSqlExecution';
+import { useTableRefresh } from './hooks/useTableRefresh';
+import { useRecordOperations } from './hooks/useRecordOperations';
 import { useAppStore } from './stores/appStore';
 
 type Tab = 'data' | 'schema' | 'graph' | 'sql' | 'user';
@@ -51,248 +53,43 @@ function CellValue({ value }: { value: unknown }) {
 export default function App() {
   useWebSocketServer();
   const { sendRequest } = useConnections();
-  const { addEntry } = useQueryHistory();
+
   const activeDeviceId = useAppStore((s) => s.activeDeviceId);
-  const setTables = useAppStore((s) => s.setTables);
-  const setSelectedTable = useAppStore((s) => s.setSelectedTable);
-  const setTableData = useAppStore((s) => s.setTableData);
-  const setSchema = useAppStore((s) => s.setSchema);
-  const setDatabaseInfo = useAppStore((s) => s.setDatabaseInfo);
-  const setSqlResult = useAppStore((s) => s.setSqlResult);
-  const setAllSchemas = useAppStore((s) => s.setAllSchemas);
-  const sqlResult = useAppStore((s) => s.sqlResult);
   const selectedTable = useAppStore((s) => s.selectedTable);
   const loading = useAppStore((s) => s.loading);
-  const tables = useAppStore((s) => s.tables);
-  const tableData = useAppStore((s) => s.tableData);
-  const allSchemas = useAppStore((s) => s.allSchemas);
 
-  // Transform allSchemas (Record<string, ColumnInfo[]>) to Record<string, string[]> for SQL autocomplete
-  const sqlEditorSchema = useMemo(() => {
-    const result: Record<string, string[]> = {};
-    for (const [tableName, columns] of Object.entries(allSchemas)) {
-      result[tableName] = columns.map((col) => col.name);
-    }
-    return result;
-  }, [allSchemas]);
+  const {
+    handleSelectTable,
+    handlePageChange,
+    handlePageSizeChange,
+    handleSort,
+    pageSize,
+  } = useDataFetching();
+
+  const {
+    handleExecuteSql,
+    sqlInput,
+    setSqlInput,
+    sqlResult,
+    sqlEditorSchema,
+  } = useSqlExecution();
+
+  const {
+    handleRefresh,
+    refreshDiff,
+    showRefreshTooltip,
+  } = useTableRefresh(pageSize);
+
+  const { handleUpdateRecord, handleDeleteRecords } = useRecordOperations(pageSize);
 
   const [activeTab, setActiveTab] = useState<Tab>('data');
-  const [sqlInput, setSqlInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [showSaveFromConsole, setShowSaveFromConsole] = useState(false);
-  const [pageSize, setPageSize] = useState(50);
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'ASC' | 'DESC' | null>(null);
 
-  // Refresh diff state
-  const [refreshDiff, setRefreshDiff] = useState<{ added: string[]; removed: string[]; changed: { name: string; oldCount: number; newCount: number }[] } | null>(null);
-  const [showRefreshTooltip, setShowRefreshTooltip] = useState(false);
-  const prevTablesRef = useRef(tables);
-
-  // Update prevTablesRef when tables change
-  useEffect(() => { prevTablesRef.current = tables; }, [tables]);
-
-  // Fetch initial data when device connects
-  useEffect(() => {
-    if (!activeDeviceId) return;
-
-    sendRequest({ action: 'get_database_info' }).then((res) => {
-      if (!isErrorResponse(res) && res.action === 'get_database_info') {
-        setDatabaseInfo(res);
-      }
-    }).catch(console.error);
-
-    sendRequest({ action: 'get_table_list' }).then(async (res) => {
-      if (!isErrorResponse(res) && res.action === 'get_table_list') {
-        setTables(res.tables);
-        // Fetch schemas for all tables (batch) for graph relationships
-        const schemaResults: Record<string, ColumnInfo[]> = {};
-        const batchSize = 10;
-        for (let i = 0; i < res.tables.length; i += batchSize) {
-          const batch = res.tables.slice(i, i + batchSize);
-          const results = await Promise.all(
-            batch.map(t => sendRequest({ action: 'get_schema', tableName: t.name }))
-          );
-          for (const r of results) {
-            if (!isErrorResponse(r) && r.action === 'get_schema') {
-              schemaResults[r.tableName] = r.columns;
-            }
-          }
-        }
-        setAllSchemas(schemaResults);
-      }
-    }).catch(console.error);
-  }, [activeDeviceId]);
-
-  const handleSort = useCallback(
-    async (column: string, direction: 'ASC' | 'DESC') => {
-      if (!selectedTable) return;
-      const orderBy = column || undefined;
-      const orderDir = column ? direction : undefined;
-      setSortColumn(orderBy ?? null);
-      setSortDirection(orderDir ?? null);
-      const res = await sendRequest({
-        action: 'get_table_data',
-        tableName: selectedTable,
-        page: 1,
-        pageSize,
-        orderBy,
-        orderDir,
-      });
-      if (!isErrorResponse(res) && res.action === 'get_table_data') {
-        setTableData(res);
-      }
-    },
-    [selectedTable, sendRequest, setTableData, pageSize]
-  );
-
-  const handleSelectTable = useCallback(
-    async (name: string) => {
-      setSelectedTable(name);
-      setActiveTab('data');
-      setSortColumn(null);
-      setSortDirection(null);
-
-      const [dataRes, schemaRes] = await Promise.all([
-        sendRequest({ action: 'get_table_data', tableName: name, page: 1, pageSize }),
-        sendRequest({ action: 'get_schema', tableName: name }),
-      ]);
-
-      if (!isErrorResponse(dataRes) && dataRes.action === 'get_table_data') {
-        setTableData(dataRes);
-      }
-      if (!isErrorResponse(schemaRes) && schemaRes.action === 'get_schema') {
-        setSchema(schemaRes);
-      }
-    },
-    [sendRequest, setSelectedTable, setTableData, setSchema, pageSize]
-  );
-
-  const handlePageChange = useCallback(
-    async (page: number) => {
-      if (!selectedTable) return;
-      const res = await sendRequest({
-        action: 'get_table_data',
-        tableName: selectedTable,
-        page,
-        pageSize,
-        orderBy: sortColumn || undefined,
-        orderDir: sortDirection || undefined,
-      });
-      if (!isErrorResponse(res) && res.action === 'get_table_data') {
-        setTableData(res);
-      }
-    },
-    [selectedTable, sendRequest, setTableData, pageSize, sortColumn, sortDirection]
-  );
-
-  const handlePageSizeChange = useCallback(
-    async (newPageSize: number) => {
-      setPageSize(newPageSize);
-      if (!selectedTable) return;
-      const res = await sendRequest({
-        action: 'get_table_data',
-        tableName: selectedTable,
-        page: 1,
-        pageSize: newPageSize,
-        orderBy: sortColumn || undefined,
-        orderDir: sortDirection || undefined,
-      });
-      if (!isErrorResponse(res) && res.action === 'get_table_data') {
-        setTableData(res);
-      }
-    },
-    [selectedTable, sendRequest, setTableData, sortColumn, sortDirection]
-  );
-
-  const handleRefresh = useCallback(async () => {
-    if (!activeDeviceId) return;
-    const prevTables = prevTablesRef.current;
-
-    const [infoRes, listRes] = await Promise.all([
-      sendRequest({ action: 'get_database_info' }),
-      sendRequest({ action: 'get_table_list' }),
-    ]);
-
-    if (!isErrorResponse(infoRes) && infoRes.action === 'get_database_info') setDatabaseInfo(infoRes);
-    if (!isErrorResponse(listRes) && listRes.action === 'get_table_list') {
-      const newTables = listRes.tables;
-      setTables(newTables);
-
-      // Compute diff
-      const prevMap = new Map(prevTables.map(t => [t.name, t.recordCount]));
-      const newMap = new Map(newTables.map(t => [t.name, t.recordCount]));
-      const added = newTables.filter(t => !prevMap.has(t.name)).map(t => t.name);
-      const removed = prevTables.filter(t => !newMap.has(t.name)).map(t => t.name);
-      const changed = newTables.filter(t => prevMap.has(t.name) && prevMap.get(t.name) !== t.recordCount).map(t => ({ name: t.name, oldCount: prevMap.get(t.name)!, newCount: t.recordCount }));
-
-      if (added.length || removed.length || changed.length) {
-        setRefreshDiff({ added, removed, changed });
-        setShowRefreshTooltip(true);
-        setTimeout(() => setShowRefreshTooltip(false), 5000);
-      } else {
-        setRefreshDiff(null);
-        setShowRefreshTooltip(true);
-        setTimeout(() => setShowRefreshTooltip(false), 2000);
-      }
-    }
-
-    // Re-fetch selected table data if any
-    if (selectedTable) {
-      const [dataRes, schemaRes] = await Promise.all([
-        sendRequest({ action: 'get_table_data', tableName: selectedTable, page: 1, pageSize: tableData?.pageSize ?? pageSize }),
-        sendRequest({ action: 'get_schema', tableName: selectedTable }),
-      ]);
-      if (!isErrorResponse(dataRes) && dataRes.action === 'get_table_data') setTableData(dataRes);
-      if (!isErrorResponse(schemaRes) && schemaRes.action === 'get_schema') setSchema(schemaRes);
-    }
-  }, [activeDeviceId, selectedTable, sendRequest, setTables, setDatabaseInfo, setTableData, setSchema, pageSize, tableData]);
-
-  const handleExecuteSql = useCallback(
-    async (sql: string) => {
-      try {
-        const res = await sendRequest({ action: 'execute_sql', sql });
-        if (isErrorResponse(res)) {
-          addEntry(sql, undefined, res.error);
-          setSqlResult(null);
-        } else if (res.action === 'execute_sql') {
-          addEntry(sql, { executionTimeMs: res.executionTimeMs, rowCount: res.rowCount });
-          setSqlResult(res);
-        }
-      } catch (err) {
-        addEntry(sql, undefined, err instanceof Error ? err.message : 'Unknown error');
-      }
-    },
-    [sendRequest, addEntry, setSqlResult]
-  );
-
-  const handleUpdateRecord = useCallback(
-    async (tableName: string, recordId: string, column: string, value: unknown) => {
-      const res = await sendRequest({ action: 'update_record', tableName, recordId, column, value });
-      if (!isErrorResponse(res) && res.action === 'update_record') {
-        // Re-fetch table data
-        const dataRes = await sendRequest({ action: 'get_table_data', tableName, page: tableData?.page ?? 1, pageSize });
-        if (!isErrorResponse(dataRes) && dataRes.action === 'get_table_data') setTableData(dataRes);
-      }
-    },
-    [sendRequest, setTableData, pageSize, tableData]
-  );
-
-  const handleDeleteRecords = useCallback(
-    async (tableName: string, recordIds: string[]) => {
-      const res = await sendRequest({ action: 'delete_records', tableName, recordIds });
-      if (!isErrorResponse(res)) {
-        // Re-fetch table data and list (counts changed)
-        const [dataRes, listRes] = await Promise.all([
-          sendRequest({ action: 'get_table_data', tableName, page: 1, pageSize }),
-          sendRequest({ action: 'get_table_list' }),
-        ]);
-        if (!isErrorResponse(dataRes) && dataRes.action === 'get_table_data') setTableData(dataRes);
-        if (!isErrorResponse(listRes) && listRes.action === 'get_table_list') setTables(listRes.tables);
-      }
-    },
-    [sendRequest, setTableData, setTables, pageSize]
-  );
+  const handleSelectTableAndSwitchTab = async (name: string) => {
+    setActiveTab('data');
+    await handleSelectTable(name);
+  };
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'data', label: 'Data' },
@@ -309,16 +106,12 @@ export default function App() {
     <Layout
       header={
         <div className="flex items-center gap-2">
-          {/* Refresh button */}
           {activeDeviceId && (
             <div className="relative">
               <button
                 onClick={handleRefresh}
-                className="flex items-center justify-center rounded p-1 transition-colors"
-                style={{ color: 'var(--color-text-muted)' }}
+                className="flex items-center justify-center rounded p-1 hover-text-primary"
                 title="Refresh data"
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                   <path d="M13.65 2.35A8 8 0 1 0 16 8h-2a6 6 0 1 1-1.76-4.24L10 6h6V0l-2.35 2.35z" fill="currentColor" />
@@ -366,11 +159,8 @@ export default function App() {
           <ConnectionStatus />
           <button
             onClick={() => setShowSettings(true)}
-            className="flex items-center justify-center rounded p-1 transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
+            className="flex items-center justify-center rounded p-1 hover-text-primary"
             title="Settings"
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M6.5 1h3l.4 2.1a5.5 5.5 0 0 1 1.3.8L13.3 3l1.5 2.6-1.7 1.3a5.6 5.6 0 0 1 0 1.6l1.7 1.3-1.5 2.6-2.1-.9a5.5 5.5 0 0 1-1.3.8L9.5 15h-3l-.4-2.1a5.5 5.5 0 0 1-1.3-.8L2.7 13 1.2 10.4l1.7-1.3a5.6 5.6 0 0 1 0-1.6L1.2 6.2 2.7 3.6l2.1.9A5.5 5.5 0 0 1 6.1 3.7L6.5 1z" stroke="currentColor" strokeWidth="1.2" fill="none" />
@@ -382,7 +172,7 @@ export default function App() {
       sidebar={
         <div className="flex flex-col flex-1 overflow-hidden">
           <DatabaseInfo />
-          <TableList onSelectTable={handleSelectTable} />
+          <TableList onSelectTable={handleSelectTableAndSwitchTab} />
         </div>
       }
       main={
@@ -401,7 +191,7 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className="relative px-4 py-2.5 text-xs font-medium transition-colors"
+                  className={`relative px-4 py-2.5 text-xs font-medium transition-colors ${!isActive ? 'hover-text-secondary' : ''}`}
                   style={{
                     color: isActive ? 'var(--color-accent)' : 'var(--color-text-muted)',
                     background: 'transparent',
@@ -409,19 +199,8 @@ export default function App() {
                     outline: 'none',
                     cursor: 'pointer',
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)';
-                    }
-                  }}
                 >
                   {tab.label}
-                  {/* Active underline */}
                   {isActive && (
                     <span
                       className="absolute bottom-0 left-0 right-0 rounded-t"
@@ -438,7 +217,6 @@ export default function App() {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
-            {/* Data tab */}
             {activeTab === 'data' && (
               <div className="h-full">
                 {showEmptyState ? (
@@ -456,32 +234,24 @@ export default function App() {
               </div>
             )}
 
-            {/* Schema tab */}
             {activeTab === 'schema' && (
               <div className="p-4 overflow-auto h-full">
-                {showEmptyState ? (
-                  <EmptyState />
-                ) : (
-                  <SchemaViewer />
-                )}
+                {showEmptyState ? <EmptyState /> : <SchemaViewer />}
               </div>
             )}
 
-            {/* Graph tab */}
             {activeTab === 'graph' && (
               <div className="h-full">
                 <SchemaGraph />
               </div>
             )}
 
-            {/* User Info tab */}
             {activeTab === 'user' && (
               <div className="h-full">
                 <UserInfo sendRequest={sendRequest} />
               </div>
             )}
 
-            {/* SQL Console tab */}
             {activeTab === 'sql' && (
               <ResizableSplitPane
                 initialTopRatio={0.4}
@@ -573,15 +343,10 @@ export default function App() {
                               {sqlResult.rows.map((row, i) => (
                                 <tr
                                   key={i}
+                                  className="hover-row-accent"
                                   style={{
                                     background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
                                     borderBottom: '1px solid var(--color-border-subtle)',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0,93,255,0.04)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)';
                                   }}
                                 >
                                   {sqlResult.columns.map((col) => (
@@ -614,7 +379,7 @@ export default function App() {
       }
     />
     {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
-    <CommandPalette onSelectTable={handleSelectTable} />
+    <CommandPalette onSelectTable={handleSelectTableAndSwitchTab} />
     </>
   );
 }

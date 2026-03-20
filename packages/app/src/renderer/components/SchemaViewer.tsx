@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAppStore } from '../stores/appStore';
 
 type ColumnType = 'string' | 'number' | 'boolean' | string;
@@ -126,15 +125,10 @@ export function SchemaViewer() {
             {schema.columns.map((col, i) => (
               <tr
                 key={col.name}
+                className="hover-row-accent"
                 style={{
                   background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
                   borderBottom: '1px solid var(--color-border-subtle)',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0, 93, 255, 0.03)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLTableRowElement).style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)';
                 }}
               >
                 <td

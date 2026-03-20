@@ -52,6 +52,71 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* Hover utility: muted to primary text color */
+.hover-text-primary {
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+.hover-text-primary:hover {
+  color: var(--color-text-primary);
+}
+
+/* Hover utility: muted to secondary text color */
+.hover-text-secondary {
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+.hover-text-secondary:hover {
+  color: var(--color-text-secondary);
+}
+
+/* Hover utility: muted to accent text color */
+.hover-text-accent {
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+.hover-text-accent:hover {
+  color: var(--color-accent);
+}
+
+/* Hover utility: muted to danger text color */
+.hover-text-danger {
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+.hover-text-danger:hover {
+  color: var(--color-danger);
+}
+
+/* Hover row: subtle background highlight */
+.hover-row-highlight {
+  transition: background-color 0.15s ease;
+}
+.hover-row-highlight:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Hover row: accent background highlight */
+.hover-row-accent {
+  transition: background-color 0.15s ease;
+}
+.hover-row-accent:hover {
+  background: rgba(0, 93, 255, 0.04);
+}
+
+/* Focus border: accent on focus */
+.focus-border-accent:focus {
+  border-color: rgba(0, 93, 255, 0.4);
+}
+
+/* Hover: resize handle */
+.hover-resize-handle {
+  transition: background-color 0.15s ease;
+}
+.hover-resize-handle:hover {
+  background: var(--color-border);
+}
+
 /* ReactFlow dark theme overrides */
 .react-flow__controls button {
   background: var(--color-surface-2) !important;

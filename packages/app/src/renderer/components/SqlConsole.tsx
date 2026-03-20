@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { SqlEditor, type SqlEditorHandle } from './SqlEditor';
 
 interface SqlConsoleProps {

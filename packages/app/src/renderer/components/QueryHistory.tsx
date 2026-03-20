@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQueryHistory } from '../hooks/useQueryHistory';
 
 interface QueryHistoryProps {
@@ -82,15 +82,9 @@ export function QueryHistory({ onReplay }: QueryHistoryProps) {
             <button
               key={entry.id}
               onClick={() => onReplay(entry.sql)}
-              className="w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors group"
+              className="w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors group hover-row-highlight"
               style={{
                 borderBottom: i < queryHistory.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
               }}
             >
               {/* Status indicator */}

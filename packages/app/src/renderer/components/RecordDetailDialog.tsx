@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface RecordDetailDialogProps {
   record: Record<string, unknown>;
@@ -34,10 +33,7 @@ export function RecordDetailDialog({ record, columns, tableName, onClose }: Reco
           </div>
           <button
             onClick={onClose}
-            className="flex items-center justify-center rounded p-1 transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
+            className="flex items-center justify-center rounded p-1 hover-text-primary"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

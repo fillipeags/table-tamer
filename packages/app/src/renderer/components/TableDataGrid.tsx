@@ -392,21 +392,11 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                         onMouseDown={header.getResizeHandler()}
                         onTouchStart={header.getResizeHandler()}
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 top-0 h-full w-[4px] cursor-col-resize select-none touch-none"
+                        className={`absolute right-0 top-0 h-full w-[4px] cursor-col-resize select-none touch-none ${!header.column.getIsResizing() ? 'hover-resize-handle' : ''}`}
                         style={{
                           background: header.column.getIsResizing()
                             ? 'var(--color-accent)'
                             : 'transparent',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!header.column.getIsResizing()) {
-                            (e.currentTarget as HTMLDivElement).style.background = 'var(--color-border)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!header.column.getIsResizing()) {
-                            (e.currentTarget as HTMLDivElement).style.background = 'transparent';
-                          }
                         }}
                       />
                     </th>
@@ -463,21 +453,11 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                 return (
                   <tr
                     key={row.id}
-                    className="group"
+                    className={`group ${!isRowSelected ? 'hover-row-accent' : ''}`}
                     style={{
                       background: isRowSelected
                         ? 'rgba(0, 93, 255, 0.07)'
                         : isEven ? 'transparent' : 'rgba(255,255,255,0.015)',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isRowSelected) {
-                        (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(0, 93, 255, 0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isRowSelected) {
-                        (e.currentTarget as HTMLTableRowElement).style.background = isEven ? 'transparent' : 'rgba(255,255,255,0.015)';
-                      }
                     }}
                   >
                     {/* Checkbox */}
@@ -562,10 +542,8 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                         <button
                           onClick={() => handleCopyRow(row.original)}
                           title="Copy row as JSON"
-                          className="p-1 rounded transition-colors"
-                          style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
+                          className="p-1 rounded hover-text-primary"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
                         >
                           <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                             <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
@@ -576,10 +554,8 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                         <button
                           onClick={() => setDetailRecord({ record: row.original, index: i })}
                           title="View / edit record"
-                          className="p-1 rounded transition-colors"
-                          style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-accent)'; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
+                          className="p-1 rounded hover-text-accent"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
                         >
                           <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                             <path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
@@ -591,10 +567,8 @@ export function TableDataGrid({ onPageChange, onPageSizeChange, onUpdateRecord, 
                           <button
                             onClick={() => handleDeleteSingleRow(recordId)}
                             title="Delete record"
-                            className="p-1 rounded transition-colors"
-                            style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-danger)'; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
+                            className="p-1 rounded hover-text-danger"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
                           >
                             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                               <path d="M3 4h10l-1 10H4L3 4zM6 2h4M2 4h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />

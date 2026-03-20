@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAppStore } from '../stores/appStore';
 
 function getPlatformLabel(platform: string): string {
@@ -20,18 +19,12 @@ export function DeviceSelector() {
       <select
         value={activeDeviceId ?? ''}
         onChange={(e) => setActiveDevice(e.target.value || null)}
-        className="appearance-none text-xs rounded px-2.5 py-1 pr-6 cursor-pointer transition-colors"
+        className="appearance-none text-xs rounded px-2.5 py-1 pr-6 cursor-pointer transition-colors focus-border-accent"
         style={{
           background: 'var(--color-surface-2)',
           border: '1px solid var(--color-border)',
           color: 'var(--color-text-primary)',
           outline: 'none',
-        }}
-        onFocus={(e) => {
-          (e.target as HTMLSelectElement).style.borderColor = 'rgba(0, 93, 255, 0.4)';
-        }}
-        onBlur={(e) => {
-          (e.target as HTMLSelectElement).style.borderColor = 'var(--color-border)';
         }}
       >
         {devices.map((d) => (

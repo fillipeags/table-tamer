@@ -114,11 +114,8 @@ export function Layout({ sidebar, main, header }: LayoutProps) {
           </span>
           <button
             onClick={toggleCollapsed}
-            className="flex items-center justify-center rounded p-1 ml-1 transition-colors"
-            style={{ color: 'var(--color-text-muted)' }}
+            className="flex items-center justify-center rounded p-1 ml-1 hover-text-primary"
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-muted)'; }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" fill="none" />

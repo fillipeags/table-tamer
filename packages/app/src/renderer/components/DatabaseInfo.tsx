@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAppStore } from '../stores/appStore';
 
 export function DatabaseInfo() {
