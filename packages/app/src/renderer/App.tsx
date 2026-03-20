@@ -13,6 +13,7 @@ import { SavedQueries } from './components/SavedQueries';
 import { SettingsDialog } from './components/SettingsDialog';
 import { SchemaGraph } from './components/SchemaGraph';
 import { UserInfo } from './components/UserInfo';
+import { CommandPalette } from './components/CommandPalette';
 import { useWebSocketServer } from './hooks/useWebSocketServer';
 import { useConnections } from './hooks/useConnections';
 import { useQueryHistory } from './hooks/useQueryHistory';
@@ -560,6 +561,7 @@ export default function App() {
       }
     />
     {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
+    <CommandPalette onSelectTable={handleSelectTable} />
     </>
   );
 }

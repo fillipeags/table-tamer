@@ -57,7 +57,7 @@ export function TableList({ onSelectTable }: TableListProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filter tables..."
-              className="w-full rounded text-xs pl-6 pr-2 py-1.5 transition-colors"
+              className="w-full rounded text-xs pl-6 pr-10 py-1.5 transition-colors"
               style={{
                 background: 'var(--color-surface-3)',
                 border: '1px solid var(--color-border)',
@@ -71,6 +71,20 @@ export function TableList({ onSelectTable }: TableListProps) {
                 (e.target as HTMLInputElement).style.borderColor = 'var(--color-border)';
               }}
             />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] rounded px-1 py-px cursor-pointer transition-colors"
+              style={{
+                background: 'var(--color-surface-3)',
+                color: 'var(--color-text-muted)',
+                border: '1px solid var(--color-border-subtle)',
+                lineHeight: '1.4',
+              }}
+              onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+              title="Search tables (⌘K)"
+            >
+              ⌘K
+            </button>
           </div>
         </div>
       )}
