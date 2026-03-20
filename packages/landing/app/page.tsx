@@ -2,6 +2,7 @@ import { DownloadButtons } from './components/DownloadButtons';
 import { ArchitectureDiagram } from './components/ArchitectureDiagram';
 import { InstallCommand } from './components/InstallCommand';
 import { CodeBlock } from './components/CodeBlock';
+import { PrismBackground } from './components/PrismBackground';
 
 const features = [
   {
@@ -90,19 +91,8 @@ const compatibility = [
 export default function Home() {
   return (
     <div className="min-h-screen overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div
-          className="absolute top-[-20%] left-[50%] w-[800px] h-[800px] rounded-full animate-glow-pulse"
-          style={{ background: 'radial-gradient(circle, rgba(0,93,255,0.12) 0%, transparent 70%)', transform: 'translateX(-50%)' }}
-        />
-        <div
-          className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full animate-glow-pulse"
-          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', animationDelay: '2s' }}
-        />
-        {/* Moving gradient mesh */}
-        <div className="absolute inset-0 moving-gradient-bg opacity-50" />
-      </div>
+      {/* Prism background */}
+      <PrismBackground />
 
       {/* Nav */}
       <nav className="relative z-10 max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
