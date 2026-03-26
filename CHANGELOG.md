@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/fillipeags/table-tamer/compare/v0.6.1...v0.6.2) (2026-03-26)
+
+
+### Bug Fixes
+
+* reduce log noise with silent retries and exponential backoff ([632ca8f](https://github.com/fillipeags/table-tamer/commit/632ca8fbd27541602b6be64450de8c69fc727250))
+
 ## [0.6.1](https://github.com/fillipeags/table-tamer/compare/v0.6.0...v0.6.1) (2026-03-20)
 
 
