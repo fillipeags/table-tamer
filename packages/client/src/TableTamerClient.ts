@@ -57,24 +57,20 @@ class TableTamerClient {
   }
 
   connect(): void {
-    console.log('[TableTamer] Connecting...');
     this.connection.connect();
   }
 
   disconnect(): void {
-    console.log('[TableTamer] Disconnecting...');
     this.connection.disconnect();
   }
 
   private onConnect(): void {
-    console.log('[TableTamer] Connected to desktop app');
     const handshake = createHandshake(this.handshakePayload);
     this.connection.send(handshake);
     this.userOnConnect?.();
   }
 
   private onDisconnect(): void {
-    console.log('[TableTamer] Disconnected from desktop app');
     this.userOnDisconnect?.();
   }
 

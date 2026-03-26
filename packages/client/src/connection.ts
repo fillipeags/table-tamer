@@ -1,6 +1,9 @@
 import { RECONNECT_INTERVAL_MS, DEFAULT_PORT, type Message } from '@table-tamer/core';
 import { getDevServerHost } from './getDevServerHost';
 
+const MAX_RECONNECT_INTERVAL_MS = 30_000;
+const MAX_SILENT_RETRIES = 3;
+
 export interface ConnectionOptions {
   host?: string;
   port?: number;
@@ -13,6 +16,8 @@ export class Connection {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shouldReconnect = true;
+  private retryCount = 0;
+  private hasConnectedBefore = false;
   private options: Required<Pick<ConnectionOptions, 'host' | 'port'>> & ConnectionOptions;
 
   constructor(options: ConnectionOptions) {
@@ -25,6 +30,7 @@ export class Connection {
 
   connect(): void {
     this.shouldReconnect = true;
+    this.retryCount = 0;
     this.attemptConnect();
   }
 
@@ -51,11 +57,17 @@ export class Connection {
   private attemptConnect(): void {
     try {
       const url = `ws://${this.options.host}:${this.options.port}`;
-      console.log(`[TableTamer] Attempting connection to ${url}`);
+
+      if (this.retryCount === 0) {
+        console.log(`[TableTamer] Connecting to ${url}...`);
+      }
+
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
-        console.log('[TableTamer] WebSocket onopen fired');
+        this.retryCount = 0;
+        this.hasConnectedBefore = true;
+        console.log('[TableTamer] Connected');
         this.options.onConnect();
       };
 
@@ -68,17 +80,21 @@ export class Connection {
         }
       };
 
-      this.ws.onclose = (event: CloseEvent) => {
-        console.log(`[TableTamer] WebSocket onclose: code=${event.code} reason="${event.reason}" wasClean=${event.wasClean}`);
+      this.ws.onclose = () => {
+        if (this.hasConnectedBefore && this.retryCount === 0) {
+          console.log('[TableTamer] Disconnected, will retry...');
+        }
         this.options.onDisconnect();
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = (event: Event) => {
-        console.error('[TableTamer] WebSocket onerror:', (event as any).message || 'unknown error');
+      this.ws.onerror = () => {
+        // Silence — onclose will follow and handle reconnection
       };
     } catch (err) {
-      console.error('[TableTamer] Connection attempt threw:', err);
+      if (this.retryCount === 0) {
+        console.warn('[TableTamer] Connection failed:', err);
+      }
       this.scheduleReconnect();
     }
   }
@@ -86,9 +102,23 @@ export class Connection {
   private scheduleReconnect(): void {
     if (!this.shouldReconnect) return;
     this.clearReconnectTimer();
+
+    this.retryCount++;
+
+    if (!this.hasConnectedBefore && this.retryCount === MAX_SILENT_RETRIES) {
+      console.log(
+        `[TableTamer] Desktop app not found after ${MAX_SILENT_RETRIES} attempts. ` +
+        'Will keep retrying silently. Start the desktop app to connect.',
+      );
+    }
+
+    const interval = Math.min(
+      RECONNECT_INTERVAL_MS * Math.pow(2, this.retryCount - 1),
+      MAX_RECONNECT_INTERVAL_MS,
+    );
     this.reconnectTimer = setTimeout(() => {
       this.attemptConnect();
-    }, RECONNECT_INTERVAL_MS);
+    }, interval);
   }
 
   private clearReconnectTimer(): void {

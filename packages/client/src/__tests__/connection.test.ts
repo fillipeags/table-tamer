@@ -186,10 +186,83 @@ describe('Connection', () => {
     connection.connect();
     expect(MockWebSocket.instances).toHaveLength(1);
 
+    // Simulate a successful connection first, then close
+    MockWebSocket.instances[0].simulateOpen();
     MockWebSocket.instances[0].simulateClose();
+    // First retry uses base interval (3000ms)
     vi.advanceTimersByTime(3000);
 
     expect(MockWebSocket.instances).toHaveLength(2);
+  });
+
+  it('uses exponential backoff for reconnection', () => {
+    const connection = new Connection({
+      onMessage: vi.fn(),
+      onConnect: vi.fn(),
+      onDisconnect: vi.fn(),
+    });
+
+    connection.connect();
+    MockWebSocket.instances[0].simulateClose();
+
+    // First retry at 3s
+    vi.advanceTimersByTime(3000);
+    expect(MockWebSocket.instances).toHaveLength(2);
+
+    MockWebSocket.instances[1].simulateClose();
+
+    // Second retry at 6s (3000 * 2^1)
+    vi.advanceTimersByTime(5999);
+    expect(MockWebSocket.instances).toHaveLength(2);
+    vi.advanceTimersByTime(1);
+    expect(MockWebSocket.instances).toHaveLength(3);
+  });
+
+  it('caps reconnect interval at 30 seconds', () => {
+    const connection = new Connection({
+      onMessage: vi.fn(),
+      onConnect: vi.fn(),
+      onDisconnect: vi.fn(),
+    });
+
+    connection.connect();
+
+    // Simulate many failures to push backoff past the cap
+    for (let i = 0; i < 10; i++) {
+      MockWebSocket.instances[MockWebSocket.instances.length - 1].simulateClose();
+      vi.advanceTimersByTime(30_000);
+    }
+
+    const instancesBefore = MockWebSocket.instances.length;
+    MockWebSocket.instances[MockWebSocket.instances.length - 1].simulateClose();
+
+    // Should reconnect within 30s max
+    vi.advanceTimersByTime(30_000);
+    expect(MockWebSocket.instances.length).toBe(instancesBefore + 1);
+  });
+
+  it('resets retry count after successful connection', () => {
+    const connection = new Connection({
+      onMessage: vi.fn(),
+      onConnect: vi.fn(),
+      onDisconnect: vi.fn(),
+    });
+
+    connection.connect();
+
+    // Fail a few times to build up retryCount
+    MockWebSocket.instances[0].simulateClose();
+    vi.advanceTimersByTime(3000); // retry 1
+    MockWebSocket.instances[1].simulateClose();
+    vi.advanceTimersByTime(6000); // retry 2
+
+    // Now connect successfully
+    MockWebSocket.instances[2].simulateOpen();
+    MockWebSocket.instances[2].simulateClose();
+
+    // Next retry should use base interval (3s), not exponential
+    vi.advanceTimersByTime(3000);
+    expect(MockWebSocket.instances.length).toBe(4);
   });
 
   it('does not reconnect after explicit disconnect', () => {
@@ -291,18 +364,16 @@ describe('Connection', () => {
     // First close triggers a reconnect timer
     MockWebSocket.instances[0].simulateClose();
 
-    // Before the timer fires, connect again (which triggers disconnect + connect)
-    // Advance partially so the timer hasn't fired
+    // Before the timer fires, connect again (resets retryCount)
     vi.advanceTimersByTime(1000);
 
-    // Second close triggers another reconnect timer (should clear the first)
     connection.connect();
     MockWebSocket.instances[1].simulateClose();
 
-    // Advance past original timer time
+    // First retry after second connect at 3s
     vi.advanceTimersByTime(3000);
 
-    // Should have: initial(0) + reconnect-attempt(1) + second-connect(2) + one-reconnect(3)
+    // Should have: initial(0) + second-connect(1) + one-reconnect(2)
     // Not extra reconnects from the old timer
     expect(MockWebSocket.instances).toHaveLength(3);
   });
